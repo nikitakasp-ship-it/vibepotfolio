@@ -244,7 +244,7 @@
   $('sound').onclick=()=>{soundChoice=true;soundOn=!soundOn;ensureSound();};
 
   function getView(name){
-    return {room:{pos:V(-1.28,1.61,2.05),look:V(.55,1.1,-1.75)},tv:{pos:V(-.22,1.28,-.70),look:V(-.22,1.10,-2.10)},desk:{pos:V(.68,1.48,-.42),look:V(1.77,.88,-.50)},ps1:{pos:V(.12,.72,-.89),look:V(.12,.09,-1.53)},bike:{pos:V(-.85,1.12,1.63),look:V(-1.84,.51,1.15)},wardrobe:{pos:V(.49,1.48,1.64),look:V(1.95,1.20,1.91)},curtains:{pos:V(.95,1.58,-1.28),look:V(1.05,1.87,-2.26)},entrance:{pos:V(-1.525,1.20,4.95),look:V(-1.525,1.06,2.85)}}[name];
+    return {room:{pos:V(-1.28,1.61,2.05),look:V(.55,1.1,-1.75)},tv:{pos:V(-.22,1.28,-.70),look:V(-.22,1.10,-2.10)},desk:{pos:V(.68,1.48,-.42),look:V(1.77,.88,-.50)},ps1:{pos:V(.12,.72,-.89),look:V(.12,.09,-1.53)},shelves:{pos:V(-.25,2.0,.1),look:V(-2.08,2.12,-.25)},bike:{pos:V(-.85,1.12,1.63),look:V(-1.84,.51,1.15)},wardrobe:{pos:V(.49,1.48,1.64),look:V(1.95,1.20,1.91)},curtains:{pos:V(.95,1.58,-1.28),look:V(1.05,1.87,-2.26)},entrance:{pos:V(-1.525,1.20,4.95),look:V(-1.525,1.06,2.85)}}[name];
   }
 
   function setLook(look){camera.lookAt(look);pitch=camera.rotation.x;yaw=camera.rotation.y;}
@@ -399,6 +399,7 @@
     if(kind==='tape-in'){rub(0,.60,1250,.036);tone(.12,.52,130,103,.020,'triangle');tone(.69,.10,230,70,.065);}
     if(kind==='tape-start'){tone(0,.06,390,90,.052);tone(.12,.6,65,170,.018,'triangle');rub(.05,.22,2600,.016);}
     if(kind==='tape-out'){tone(0,.42,170,85,.018,'triangle');rub(.1,.40,1300,.032);tone(.45,.06,360,90,.045);}
+    if(kind==='bike-bell'){tone(0,1.2,2350,2345,.09);tone(.005,.7,3525,3518,.036);tone(.055,.9,4700,4690,.025);tone(.09,.8,2350,2345,.048);}
     if(kind==='lid-open'){tone(0,.045,850,220,.048,'triangle');rub(.05,.35,800,.018);}
     if(kind==='lid-close'){rub(0,.25,700,.018);tone(.3,.08,320,65,.055);}
   }
@@ -412,34 +413,103 @@
     cyl(.012,.012,.004,.119,.099,-1.525,materials.metal,scene,16);
     interactObject(ps1Lid,'ps1','Открыть / закрыть дисковод',togglePS1);interactObject(ps1Model,'ps1','Открыть / закрыть дисковод',togglePS1);
   }
-  function childhoodShelves(){
-    const pine=materials.wood,paper=mat('#d9cbae'),navy=mat('#263a5e'),red=mat('#8c342e'),green=mat('#687353');
-    function shelf(z,y,width){const g=group(-2.08,y,z,Math.PI/2);box(width,.045,.25,0,0,0,pine,g);for(const x of [-width*.36,width*.36]){box(.034,.20,.032,x,-.11,-.105,materials.darkWood,g);rod(V(x,-.19,-.10),V(x,-.03,.10),.018,materials.darkWood,g);}return g;}
-    const top=shelf(-1.44,2.43,1.38),lower=shelf(.96,1.72,1.18);
-    function comic(g,x,i){const m=[navy,red,green][i%3];box(.025,.225,.16,x,.136,0,m,g);box(.014,.211,.152,x,.136,.002,paper,g);box(.026,.035,.008,x,.21,.084,mat('#dfb650'),g);}
-    for(let i=0;i<7;i++)comic(lower,-.45+i*.03,i);for(let i=0;i<4;i++)comic(top,.37+i*.03,i);
-    // A little tin robot, a toy rocket, a miniature skate deck and model dinosaurs.
-    const robot=new THREE.Group();top.add(robot);robot.position.set(-.39,.025,0);
-    box(.10,.13,.065,0,.17,0,navy,robot);box(.105,.073,.074,0,.277,0,materials.metal,robot);for(const x of [-.03,.03]){sphere(.012,x,.286,.041,mat('#d9b354'),robot);rod(V(x,.105,0),V(x*1.5,.029,.012),.018,materials.metal,robot);box(.043,.027,.075,x*1.5,.014,.016,navy,robot);}for(const s of [-1,1])rod(V(s*.059,.23,0),V(s*.078,.115,.02),.014,materials.metal,robot);cyl(.006,.006,.045,0,.335,0,materials.metal,robot,8);
-    const rocket=new THREE.Group();top.add(rocket);rocket.position.set(-.05,.025,0);cyl(.032,.043,.18,0,.115,0,paper,rocket,12);const cone=mesh(new THREE.ConeGeometry(.033,.07,12),red,rocket);cone.position.y=.24;for(let i=0;i<3;i++){const a=i*2.094;rod(V(Math.cos(a)*.026,.09,Math.sin(a)*.026),V(Math.cos(a)*.072,.012,Math.sin(a)*.072),.012,red,rocket);}
-    for(let i=0;i<2;i++){const toy=new THREE.Group();lower.add(toy);toy.position.set(.15+i*.20,.04,0);const body=sphere(.058,0,.06,0,green,toy);body.scale.set(1.4,.7,.55);rod(V(.04,.07,0),V(.075,.13,0),.020,green,toy);sphere(.027,.09,.135,0,green,toy);rod(V(-.07,.05,0),V(-.145,.09,0),.011,green,toy);for(const x of [-.036,.033])for(const z of [-.024,.024])rod(V(x,.04,z),V(x,.005,z),.009,green,toy);}
-    // Headphones lie on the lower shelf, with padded cups and a curved headband.
-    const phones=new THREE.Group();lower.add(phones);phones.position.set(-.07,.045,.027);const band=mesh(new THREE.TorusGeometry(.064,.007,6,24,Math.PI),materials.black,phones);band.rotation.x=-Math.PI/2;for(const x of [-.064,.064]){const cup=sphere(.029,x,0,0,materials.black,phones);cup.scale.set(.60,.6,1.3);}
-    const board=group(-1.995,2.49,-1.19);box(.064,.016,.20,0,0,0,red,board);for(const z of [-.069,.069]){rod(V(-.047,-.024,z),V(.047,-.024,z),.007,materials.metal,board);for(const x of [-.041,.041]){const wh=cyl(.018,.018,.014,x,-.025,z,paper,board,10);wh.rotation.z=Math.PI/2;}}
+  // Imported furniture retains the two moving door groups through batching.
+  let wardrobe=null,wardrobeOpen=false,wardrobeAngle=0,wardrobeDoors=[],wardrobeDoorColliders=[];
+  let bellLever=null,bellTime=-10,bellRings=0;
+  const hallLights=[],hallSurfaces=[];
+  let hallwayLit=true;
+  function clothMaterial(color,index){
+    const map=canvasTexture(64,64,(c,w,h)=>{
+      c.fillStyle=color;c.fillRect(0,0,w,h);
+      for(let y=0;y<h;y+=2){c.fillStyle=y%4?'#ffffff0c':'#00000012';c.fillRect(0,y,w,1);}
+      for(let x=0;x<w;x+=3){c.fillStyle='#0000000b';c.fillRect(x,0,1,h);}
+      // Low-resolution painted folds and stitched hems, in the PS2 texture style.
+      for(let j=0;j<6;j++){const y=10+j*9;c.fillStyle='#00000025';c.fillRect(3,y,58,2);c.fillStyle='#ffffff12';c.fillRect(4,y-1,54,1);}
+      c.strokeStyle='#c7c1ac66';c.strokeRect(2,2,w-5,h-5);
+      if(index%2===0){c.fillStyle='#adab9766';c.fillRect(45,8,12,9);}
+    });map.magFilter=THREE.NearestFilter;map.minFilter=THREE.NearestMipmapNearestFilter;
+    return mat('#ffffff',{map,roughness:1});
   }
-  function clothesWardrobe(){
-    const g=group(1.93,0,1.98,-Math.PI/2);g.name='Wardrobe with childhood clothes';const oak=materials.wood,inside=materials.darkWood;
-    for(const x of [-.535,.535])box(.05,2.23,.50,x,1.145,0,oak,g);
-    for(const y of [.055,2.235])box(1.12,.065,.54,0,y,0,oak,g);box(1.04,2.13,.032,0,1.15,-.233,inside,g);
-    box(.038,2.14,.45,-.045,1.145,0,oak,g);box(.49,2.15,.035,-.295,1.145,.26,oak,g);box(.023,.17,.024,-.10,1.14,.29,materials.gold,g);
-    for(const y of [.36,1.87])box(.55,.035,.45,.25,y,0,oak,g);
-    rod(V(0,1.72,0),V(.49,1.72,0),.009,materials.metal,g);
-    const fabrics=[mat('#53667a'),mat('#8b4338'),mat('#75806b')];
-    for(let i=0;i<3;i++){const x=.075+i*.16,m=fabrics[i];const hook=mesh(new THREE.TorusGeometry(.023,.003,4,14,Math.PI*1.7),materials.metal,g);hook.position.set(x,1.71,0);for(const z of [-.12,.12])rod(V(x,1.65,0),V(x,1.59,z),.004,materials.wood,g);box(.044,.45,.23,x,1.365,0,m,g);for(const z of [-.15,.15]){const arm=box(.043,.23,.08,x,1.48,z,m,g);arm.rotation.x=z>0?-.22:.22;}box(.046,.007,.018,x,1.58,.014,paperMaterial(),g);}
-    for(let i=0;i<3;i++)box(.35,.06,.28,.235,.41+i*.068,.015,fabrics[i],g);
-    box(.33,.17,.33,.25,2.00,0,mat('#927652'),g);box(.12,.022,.003,.25,2.01,.168,paperMaterial(),g);
-    collision(1.64,2.2,1.39,2.56);
+  async function loadNewFurniture(){
+    const gltf=await new THREE.GLTFLoader().loadAsync('./assets/furniture-v7.glb');
+    gltf.scene.traverse(o=>{if(!o.isMesh)return;o.castShadow=true;o.receiveShadow=true;
+      for(const m of (Array.isArray(o.material)?o.material:[o.material])){
+        if(m.name.startsWith('Pine')){m.map=textures.wood;m.color.set('#ab7848');m.roughness=.9;}
+        if(m.map){m.map.magFilter=THREE.NearestFilter;m.map.anisotropy=1;}
+      }
+    });
+    wardrobe=group(1.93,0,1.98,-Math.PI/2);wardrobe.name='New pine wardrobe';
+    const body=gltf.scene.getObjectByName('wardrobe_body');wardrobe.add(body);
+    for(const [name,side] of [['wardrobe_left',-1],['wardrobe_right',1]]){
+      const leaf=gltf.scene.getObjectByName(name),pivot=new THREE.Group();pivot.position.set(side*.518,0,.306);wardrobe.add(pivot);
+      leaf.position.set(-side*.518,0,-.306);pivot.add(leaf);pivot.userData.side=side;wardrobeDoors.push(pivot);
+      if(side<0)box(.034,1.60,.018,.518,1.466,.025,materials.wood,pivot);
+      interactObject(pivot,'wardrobe','Открыть / закрыть шкаф',toggleWardrobe);
+      const bounds={x1:0,x2:0,z1:0,z2:0};colliders.push(bounds);wardrobeDoorColliders.push(bounds);
+    }
+    // Backing and real shelves remain behind the articulated doors.
+    const oak=materials.wood;
+    for(const y of [.67,1.10,1.53,1.96])box(1.02,.035,.48,0,y,-.01,oak,wardrobe);
+    box(.03,1.58,.46,.08,1.46,-.01,oak,wardrobe);
+    const cloth=['#334663','#777b69','#874437','#b2aa91','#44404f','#57627b'].map(clothMaterial);
+    for(let row=0;row<3;row++)for(const side of [-1,1])for(let layer=0;layer<3;layer++){
+      const x=side<0?-.225:.305,w=side<0?.46:.33,h=.078,y=.736+row*.43+layer*.081;
+      const folded=box(w,h,.31,x+(layer%2)*.011,y,.033,cloth[(row*2+layer+(side>0?2:0))%cloth.length],wardrobe);
+      folded.name='Folded clothing / pixel fabric';
+      box(w*.89,.009,.012,x,y-.022,.193,mat('#232832'),wardrobe);
+    }
+    for(const [x,w,col] of [[-.25,.43,'#83745a'],[.28,.34,'#3e4e42']]){
+      box(w,.20,.36,x,2.08,-.005,mat(col),wardrobe);box(w+.012,.025,.372,x,2.19,-.005,oak,wardrobe);
+      box(.09,.028,.004,x,2.10,.178,paperMaterial(),wardrobe);
+    }
+    collision(1.64,2.2,1.37,2.59);
+    for(const [name,z,y,width] of [['shelf_upper',-1.44,2.43,1.38],['shelf_lower',.96,1.72,1.18]]){
+      const shelf=gltf.scene.getObjectByName(name);shelf.position.set(-2.08,y,z);shelf.rotation.y=Math.PI/2;shelf.scale.setScalar(width/1.84);shelf.name=name;scene.add(shelf);
+    }
+    updateWardrobe(0);
   }
+  function toggleWardrobe(){wardrobeOpen=!wardrobeOpen;soundEffect(wardrobeOpen?'case-open':'lid-close');notice(wardrobeOpen?'Шкаф открыт':'Шкаф закрыт');}
+  function updateWardrobe(dt){
+    if(!wardrobe)return;
+    wardrobeAngle=reducedMotion?(wardrobeOpen?1.42:0):THREE.MathUtils.damp(wardrobeAngle,wardrobeOpen?1.42:0,5,dt);
+    wardrobeDoors.forEach((pivot,i)=>{
+      pivot.rotation.y=pivot.userData.side*wardrobeAngle;
+      // Update the leaf collision volume as it swings into the room.
+      const a=wardrobe.localToWorld(V(pivot.position.x,0,.306));
+      const b=pivot.localToWorld(V(-pivot.userData.side*.505,0,0));
+      Object.assign(wardrobeDoorColliders[i],{x1:Math.min(a.x,b.x)-.025,x2:Math.max(a.x,b.x)+.025,z1:Math.min(a.z,b.z)-.025,z2:Math.max(a.z,b.z)+.025});
+    });
+  }
+  function bicycleFixes(){
+    const metal=materials.metal,black=materials.black;
+    // Coordinates measured from the v6 bicycle: join the stem to the bar centre.
+    rod(V(-1.84,.904,.638),V(-1.84,.949,.613),.019,metal);
+    const clamp=cyl(.024,.024,.043,-1.84,.949,.613,metal);clamp.rotation.z=Math.PI/2;clamp.name='Handlebar stem clamp';
+    for(const x of [-1.864,-1.816]){const bolt=cyl(.006,.006,.008,x,.949,.613,black);bolt.rotation.z=Math.PI/2;}
+    // Reflector housing is attached to the stem with an L bracket.
+    rod(V(-1.84,.920,.626),V(-1.84,.920,.585),.007,black);
+    rod(V(-1.84,.920,.585),V(-1.84,.932,.585),.007,black);
+    for(const x of [-1.61,-2.07])rod(V(x,.963,.661),V(x,.947,.668),.009,black);
+    const bell=group(-1.69,.981,.639);bell.name='Pressable handlebar bell';
+    const collar=mesh(new THREE.TorusGeometry(.017,.005,6,16),black,bell);collar.rotation.y=Math.PI/2;collar.position.y=-.022;
+    rod(V(0,-.024,0),V(0,.015,0),.009,metal,bell);
+    cyl(.038,.038,.015,0,.02,0,black,bell,24);
+    const dome=sphere(.037,0,.028,0,mat('#aab3be',{metalness:.85,roughness:.25}),bell,24);dome.scale.y=.57;
+    bellLever=new THREE.Group();bell.add(bellLever);bellLever.position.set(.025,.018,.012);
+    rod(V(0,0,0),V(.03,-.003,.014),.005,black,bellLever);sphere(.009,.032,-.003,.014,black,bellLever);
+    interactObject(bell,'bell','Позвонить в звонок',ringBell);
+  }
+  function ringBell(){
+    if(performance.now()-bellTime<380)return;bellTime=performance.now();bellRings++;
+    soundEffect('bike-bell');notice('Дзинь!');
+  }
+  function updateHallway(){
+    // entered is true during the entrance animation; use the physical threshold instead.
+    const strength=clamp((camera.position.z-2.86)/.14,0,1);hallwayLit=strength>0;
+    for(const l of hallLights)l.intensity=l.userData.onIntensity*strength;
+    for(const o of hallSurfaces)o.visible=hallwayLit;
+  }
+
   function paperMaterial(){return materials.paper||(materials.paper=mat('#cabd9d'));}
 
   let freeLook=false, curtainsClosed=false, curtainProgress=0, curtainPanels=[], watering=null, wateringCan=null, wateredUntil=0;
@@ -491,7 +561,7 @@
     const fabric=mat('#8b8da0',{map:textures.curtain,side:THREE.DoubleSide});
     rod(V(.12,2.76,-2.265),V(2.19,2.76,-2.265),.018,materials.darkWood);
     for(const side of [-1,1]){const geo=new THREE.PlaneGeometry(1,1.78,32,20),o=mesh(geo,fabric);o.name=side<0?'Left animated curtain':'Right animated curtain';curtainPanels.push({o,side});interactObject(o,'curtains','Открыть / закрыть шторы',toggleCurtains);}
-    const handle=box(.032,.09,.025,1.815,1.6,-2.185,materials.gold);interactObject(handle,'curtains','Открыть / закрыть шторы',toggleCurtains);
+    // The fabric itself is clickable; no floating handle on the curtain.
     updateRoomDetails(0,0);
   }
   function toggleCurtains(){curtainsClosed=!curtainsClosed;clickSound();notice(curtainsClosed?'Шторы закрываются':'Шторы открываются');}
@@ -533,13 +603,14 @@
   function domesticHallway(){
     const cream=mat('#ede6d4'),wood=mat('#aa845a');
     for(const x of [-3.35,.30])box(.03,.14,2.2,x,.07,4.1,cream);
-    const lamp=new THREE.PointLight('#fff0d1',1.7,5,2);lamp.position.set(-1.525,2.40,4.2);scene.add(lamp);
-    cyl(.20,.20,.035,-1.525,2.68,4.25,cream);cyl(.15,.15,.02,-1.525,2.65,4.25,mat('#fff1d8',{emissive:'#ffe0ad',emissiveIntensity:.5}));
+    const lamp=new THREE.PointLight('#fff0d1',1.7,5,2);lamp.position.set(-1.525,2.40,4.2);scene.add(lamp);lamp.userData.onIntensity=1.7;hallLights.push(lamp);
+    cyl(.20,.20,.035,-1.525,2.68,4.25,cream);hallSurfaces.push(cyl(.15,.15,.02,-1.525,2.65,4.25,mat('#fff1d8',{emissive:'#ffe0ad',emissiveIntensity:.5})));
     // Small domestic switch and plain white door casing visible from the corridor.
     box(.075,.095,.013,-.91,1.05,3.08,cream);box(.036,.06,.015,-.91,1.05,3.09,mat('#ddd6c7'));
     for(const x of [-2.035,-1.015])box(.075,2.22,.06,x,1.11,3.075,cream);box(1.10,.075,.06,-1.525,2.20,3.075,cream);
   }
   function updateRoomDetails(dt,time){
+    updateWardrobe(dt);updateHallway();if(bellLever){const age=(performance.now()-bellTime)/1000;bellLever.rotation.y=age<.3?Math.sin(age/.3*Math.PI)*.5:0;}
     const target=curtainsClosed?1:0;curtainProgress=reducedMotion?target:THREE.MathUtils.damp(curtainProgress,target,4.5,dt);if(Math.abs(curtainProgress-target)<.0001)curtainProgress=target;
     for(const {o,side} of curtainPanels){const p=o.geometry.attributes.position,w=THREE.MathUtils.lerp(.24,.88,curtainProgress),x=side<0?THREE.MathUtils.lerp(.32,.695,curtainProgress):THREE.MathUtils.lerp(2.03,1.565,curtainProgress);for(let i=0;i<p.count;i++){const u=(i%33)/32,v=Math.floor(i/33)/20,wind=reducedMotion?0:Math.sin(time*.7+u*5+side)*.012*v;p.setXYZ(i,(u-.5)*w,.81-v*1.62,Math.cos(u*Math.PI*12)*.022+wind);}p.needsUpdate=true;o.position.set(x,1.91,-2.265);o.geometry.computeVertexNormals();}
     for(const c of cloudObjects)c.o.position.x=c.x+(reducedMotion?0:Math.sin(time*.018+c.x)*.65);
@@ -548,7 +619,7 @@
   }
 
   function batchStaticDetails(model){
-    scene.updateMatrixWorld(true);const buckets=new Map(),animated=new Set([model,seasonalGroup,door,ps1Lid,wateringCan,...cloudObjects.map(c=>c.o)]);
+    scene.updateMatrixWorld(true);const buckets=new Map(),animated=new Set([model,seasonalGroup,door,ps1Lid,wateringCan,...wardrobeDoors,bellLever,...hallSurfaces,...cloudObjects.map(c=>c.o)]);
     scene.traverse(o=>{if(!o.isMesh||o.isInstancedMesh||Array.isArray(o.material)||o.material.transparent)return;for(let p=o;p;p=p.parent)if(animated.has(p)||p.userData.action)return;
       const key=o.material.uuid+':'+o.castShadow+':'+o.receiveShadow;if(!buckets.has(key))buckets.set(key,[]);buckets.get(key).push(o);
     });
@@ -573,14 +644,14 @@
     const deskLight=point('#ffd28a',1.15,3,V(1.84,1.12,-.13));bind('deskLamp','Настольная лампа',()=>{deskLight.visible=!deskLight.visible;clickSound();});
     point('#386dff',1.6,6,V(1.13,1.9,-2.15));point('#e5bd8c',.55,6,V(-.3,2.48,.30));
     const outside=new THREE.DirectionalLight('#628aff',1.2);outside.position.set(2,6,-8);scene.add(outside);
-    const threshold=flat(.85,.045,-1.525,.02,2.885,new THREE.MeshBasicMaterial({color:'#ffd18a',side:THREE.DoubleSide}));threshold.castShadow=false;
-    point('#ffc87c',.7,2.4,V(-1.525,.08,3.05));
+    const threshold=flat(.85,.045,-1.525,.02,2.885,new THREE.MeshBasicMaterial({color:'#ffd18a',side:THREE.DoubleSide}));threshold.castShadow=false;hallSurfaces.push(threshold);
+    const entryGlow=point('#ffc87c',.7,2.4,V(-1.525,.08,3.05));entryGlow.userData.onIntensity=.7;hallLights.push(entryGlow);
     seasonalGroup=new THREE.Group();scene.add(seasonalGroup);(parts.exterior||[]).forEach(o=>seasonalGroup.attach(o));
     collision(-2.2,-1.06,-2.40,-.10);collision(-2.2,-1.55,.14,1.90);collision(1.37,2.2,-1.5,.16);collision(.94,1.43,-.95,-.28);collision(1.68,2.2,.12,1.24);collision(-.10,.34,-1.67,-.96);
     // Link the three physical VHS cover meshes to the same projects as the menu.
     const artNames=['iron-giant-poster.jpg','metal-gear-solid-cover.jpg','warcraft-iii-reference.jpg','spider-man-reference.jpg','tmnt-reference.jpg','guyver-reference.jpg','max-payne-reference.jpg','painkiller-reference.jpg','courage-poster.png'];
     const loader=new THREE.TextureLoader();await Promise.all(artNames.map(async name=>{const t=await loader.loadAsync('./assets/'+name);t.encoding=THREE.sRGBEncoding;t.anisotropy=4;artTextures[name]=t;}));
-    restoreTVZone();restoredPrints();createCurtains();personalDetails();autumnExterior();domesticHallway();childhoodShelves();clothesWardrobe();batchStaticDetails(model);
+    restoreTVZone();restoredPrints();createCurtains();personalDetails();autumnExterior();domesticHallway();await loadNewFurniture();bicycleFixes();batchStaticDetails(model);
     const grain=$('analog-grain'),gc=grain.getContext('2d');grain.width=192;grain.height=128;
     const noise=gc.createImageData(192,128);let noiseFrame=0;
     function updateGrain(){if(!document.hidden&&!document.body.classList.contains('tv-view')){for(let i=0;i<noise.data.length;i+=4){const v=Math.random()*255;noise.data[i]=v;noise.data[i+1]=v;noise.data[i+2]=v;noise.data[i+3]=255;}gc.putImageData(noise,0,0);}noiseFrame=setTimeout(updateGrain,reducedMotion?1000000:100);}
@@ -605,13 +676,13 @@
       // Feature-detected WebMCP shares the same public interaction handlers.
       if(document.modelContext?.registerTool){const lifecycle=new AbortController();const register=tool=>{try{Promise.resolve(document.modelContext.registerTool(tool,{signal:lifecycle.signal})).catch(()=>{});}catch(_){}};
         register({name:'room_status',description:'Read room state, imported PS1, season, language and playback status.',inputSchema:{type:'object',properties:{},additionalProperties:false},annotations:{readOnlyHint:true},execute:()=>{const {canMove,...state}=window.__roomDiagnostics();return state;}});
-        register({name:'view_room_object',description:'Move to a room object using the same camera navigation as the room buttons.',inputSchema:{type:'object',properties:{object:{type:'string',enum:['room','tv','desk','ps1','bike','wardrobe','curtains']}},required:['object'],additionalProperties:false},annotations:{readOnlyHint:false},execute:input=>{if(!['room','tv','desk','ps1','bike','wardrobe','curtains'].includes(input?.object))throw new Error('Unknown room object');goTo(input.object);return{view:input.object};}});
-        register({name:'use_room_object',description:'Open or close the PS1 disc lid or the curtains, using the same interaction as clicking the object.',inputSchema:{type:'object',properties:{object:{type:'string',enum:['ps1','curtains']}},required:['object'],additionalProperties:false},annotations:{readOnlyHint:false},execute:input=>{if(!entered||entering||transition||dialogOpen())throw new Error('Enter the room and finish moving first');if(input?.object==='ps1')togglePS1();else if(input?.object==='curtains')toggleCurtains();else throw new Error('Unknown room object');return{ps1Open,curtainsClosed};}});
+        register({name:'view_room_object',description:'Move to a room object using the same camera navigation as the room buttons.',inputSchema:{type:'object',properties:{object:{type:'string',enum:['room','tv','desk','ps1','bike','wardrobe','curtains','shelves']}},required:['object'],additionalProperties:false},annotations:{readOnlyHint:false},execute:input=>{if(!['room','tv','desk','ps1','bike','wardrobe','curtains','shelves'].includes(input?.object))throw new Error('Unknown room object');goTo(input.object);return{view:input.object};}});
+        register({name:'use_room_object',description:'Use the disc lid, curtains, wardrobe doors or bicycle bell through the same handlers as clicking.',inputSchema:{type:'object',properties:{object:{type:'string',enum:['ps1','curtains','wardrobe','bell']}},required:['object'],additionalProperties:false},annotations:{readOnlyHint:false},execute:input=>{if(!entered||entering||transition||dialogOpen())throw new Error('Enter the room and finish moving first');if(input?.object==='ps1')togglePS1();else if(input?.object==='curtains')toggleCurtains();else if(input?.object==='wardrobe')toggleWardrobe();else if(input?.object==='bell')ringBell();else throw new Error('Unknown room object');return{ps1Open,curtainsClosed,wardrobeOpen,bellRings};}});
         register({name:'list_vhs_tapes',description:'List the available demo VHS tapes in the room.',inputSchema:{type:'object',properties:{},additionalProperties:false},annotations:{readOnlyHint:true},execute:()=>({tapes:PROJECTS.map(({id,title,number})=>({id,title,number,demo:true})),playing:playing?.id||null})});
         register({name:'open_vhs_cover',description:'Open a VHS cover for inspection. This does not start playback.',inputSchema:{type:'object',properties:{id:{type:'string',enum:PROJECTS.map(p=>p.id)}},required:['id'],additionalProperties:false},annotations:{readOnlyHint:false},execute:input=>{if(!input||typeof input!=='object'||Object.keys(input).some(k=>k!=='id'))throw new Error('Expected a tape id');const p=PROJECTS.find(p=>p.id===input.id);if(!p)throw new Error('Unknown tape');selectTape(p);return{id:p.id,view:'cover'};}});
         window.addEventListener('pagehide',()=>lifecycle.abort(),{once:true});
       }
-      window.__roomDiagnostics=()=>({three:THREE.REVISION,entered,entering,doorAngle:door.rotation.y,playing:playing?.id||null,curtainsClosed,curtainProgress,watering:!!watering,watered:performance.now()<wateredUntil,mouseLook:document.pointerLockElement===$('room')||freeLook,sceneObjects:scene.children.length,colliders:colliders.length,camera:camera.position.toArray(),frames:lastFrame>0,ps1Loaded:!!ps1Model,ps1Bounds:ps1Model?new THREE.Box3().setFromObject(ps1Model):null,modelError,season:seasonKey,language,music:{wanted:musicWanted,paused:music.paused,track:musicIndex,duration:music.duration,duck:musicDuck},roomModel:'blender-hybrid-v6',ps1Open,ps1Angle,soundOn,soundEvents:[...soundEvents],analog:!document.body.classList.contains('tv-view'),shelfBoards:4,visibleTapeCount:PROJECTS.filter(p=>p.sceneObject?.visible).length,drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,canMove});
+      window.__roomDiagnostics=()=>({three:THREE.REVISION,entered,entering,doorAngle:door.rotation.y,playing:playing?.id||null,curtainsClosed,curtainProgress,watering:!!watering,watered:performance.now()<wateredUntil,mouseLook:document.pointerLockElement===$('room')||freeLook,sceneObjects:scene.children.length,colliders:colliders.length,camera:camera.position.toArray(),frames:lastFrame>0,ps1Loaded:!!ps1Model,ps1Bounds:ps1Model?new THREE.Box3().setFromObject(ps1Model):null,modelError,season:seasonKey,language,music:{wanted:musicWanted,paused:music.paused,track:musicIndex,duration:music.duration,duck:musicDuck},roomModel:'blender-hybrid-v7',wardrobeOpen,wardrobeAngle,wardrobeDoors:wardrobeDoors.length,hallwayLit,hallLightIntensity:hallLights.reduce((n,l)=>n+l.intensity,0),bellRings,ps1Open,ps1Angle,soundOn,soundEvents:[...soundEvents],analog:!document.body.classList.contains('tv-view'),shelfBoards:4,visibleTapeCount:PROJECTS.filter(p=>p.sceneObject?.visible).length,drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,canMove});
     }catch(error){console.error('Room initialization:',error);renderer=null;$('loading').hidden=true;$('fallback').hidden=false;$('entrance').hidden=true;$('quick-nav').hidden=true;notice('Можно открыть концепт комнаты через меню.');}
   }
   // Current concept: physical objects, local music and the supplied GLB.
@@ -791,7 +862,7 @@
     'В этом браузере не удалось включить 3D. Можно рассмотреть концепт комнаты и обложки кассет.':'3D is unavailable in this browser. You can still view the room concept and tape covers.','Посмотреть комнату':'View room','Нажмите воспроизведение на видео.':'Press play on the video.','Видео не удалось загрузить. Проверьте файл проекта.':'The video could not be loaded.','В этом браузере звук недоступен.':'Audio is unavailable in this browser.','Потяните мышью, чтобы осмотреться.':'Drag to look around.',
     'Закрыть':'Close','Управление':'Controls','Включить звук':'Enable sound','Выключить звук':'Mute sound','Извлечь кассету':'Eject tape','Закрыть полноэкранный просмотр':'Close full-screen view','Вход в комнату':'Room entrance','Главное меню':'Main menu','Вернуться к входу':'Return to the door','Перемещение по комнате':'Move around the room','Шаг вперёд':'Step forward','Шаг влево':'Step left','Шаг назад':'Step back','Шаг вправо':'Step right','Интерактивная 3D-комната':'Interactive 3D room','Предыдущий трек':'Previous track','Следующий трек':'Next track','Позиция воспроизведения':'Playback position','Загрузка комнаты':'Loading room','Страницы тетради':'Notebook pages','Полноэкранный просмотр':'Full-screen playback','Ракурс':'View','Движение по комнате':'Move around the room','Свет уже горит…':'The light is already on…','Изображение приостановлено. Восстанавливаю комнату…':'The image is paused. Restoring the room…','Комната снова доступна':'The room is available again','Можно открыть концепт комнаты через меню.':'You can open the room concept from the menu.','Для интерактивной комнаты нужен JavaScript.':'JavaScript is required for the interactive room.','КОЛЛЕКЦИЯ VHS / 01—03':'VHS COLLECTION / 01—03'
   };
-  Object.assign(languagePairs,{'Открыть / закрыть дисковод':'Open / close disc lid','Дисковод открыт':'Disc lid open','Дисковод закрыт':'Disc lid closed','мышь — осмотр · Esc — меню':'mouse — look · Esc — menu','Двигать мышью; на телефоне — провести пальцем':'Move the mouse; swipe on touchscreens','Открыть / закрыть шторы':'Open / close curtains','Шторы закрываются':'Closing curtains','Шторы открываются':'Opening curtains','Полить растение':'Water the plant','Растение полито':'Plant watered','Растение уже полито':'The plant has already been watered'});
+  Object.assign(languagePairs,{'Открыть / закрыть шкаф':'Open / close wardrobe','Шкаф открыт':'Wardrobe open','Шкаф закрыт':'Wardrobe closed','Позвонить в звонок':'Ring the bicycle bell','Дзинь!':'Ding!','Открыть / закрыть дисковод':'Open / close disc lid','Дисковод открыт':'Disc lid open','Дисковод закрыт':'Disc lid closed','мышь — осмотр · Esc — меню':'mouse — look · Esc — menu','Двигать мышью; на телефоне — провести пальцем':'Move the mouse; swipe on touchscreens','Открыть / закрыть шторы':'Open / close curtains','Шторы закрываются':'Closing curtains','Шторы открываются':'Opening curtains','Полить растение':'Water the plant','Растение полито':'Plant watered','Растение уже полито':'The plant has already been watered'});
   const reversePairs=Object.fromEntries(Object.entries(languagePairs).map(([ru,en])=>[en,ru]));Object.assign(reversePairs,{Desk:'Стол','Move around the room':'Перемещение по комнате'});
   function translated(value){const key=reversePairs[value]||value;return language==='en'?(languagePairs[key]||value):key;}
   function applyLanguage(){
