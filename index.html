@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#101218">
+  <meta name="description" content="После полуночи — интерактивная комната моушн-дизайнера. Исследуйте пространство, выбирайте VHS и включайте телевизор.">
+  <title>После полуночи — комната</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='5' fill='%23101218'/%3E%3Crect x='4' y='6' width='24' height='19' rx='3' fill='%23b9b7af'/%3E%3Crect x='7' y='9' width='17' height='12' rx='2' fill='%234c6ded'/%3E%3Cpath d='M13 11l7 4-7 4z' fill='%23dce7ff'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="./style.css">
+  <link rel="stylesheet" href="./refinement.css">
+  <link rel="stylesheet" href="./analog.css">
+  <script src="./vendor/three.min.js" defer></script>
+  <script src="./vendor/GLTFLoader.js" defer></script>
+  <script src="./content.js" defer></script>
+  <script src="./room.js" defer></script>
+</head>
+<body>
+  <main id="experience" aria-label="Интерактивная 3D-комната">
+    <canvas id="room" tabindex="0" aria-label="3D-комната. WASD — движение, перетаскивание мышью — осмотр. Кассеты доступны также через меню."></canvas>
+    <div class="vignette" aria-hidden="true"></div>
+    <canvas id="analog-grain" aria-hidden="true"></canvas>
+    <div class="scanlines" aria-hidden="true"></div>
+    <header class="header">
+      <button class="wordmark" id="home" aria-label="Вернуться к входу"><span>ПОСЛЕ</span><span>ПОЛУНОЧИ<span class="logo-star">✳</span></span></button>
+      <nav class="nav" aria-label="Главное меню">
+        <button id="tapes-menu">Кассеты <span class="nav-count">03</span></button>
+        <button id="notebook-menu">Тетрадь</button><button id="music-menu" aria-label="Магнитофон">♫</button><button id="language" aria-label="Switch to English">EN</button><button id="concept-menu" hidden>Концепт</button>
+        <button id="sound" class="icon-button" aria-label="Включить звук" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4zM17 9l5 6m0-6-5 6"/></svg></button>
+        <button id="help-menu" class="icon-button help-button" aria-label="Управление">?</button>
+      </nav>
+    </header>
+    <div hidden class="timecode" aria-hidden="true"><span class="time-label">SP</span> <span id="clock">00:17:00</span></div>
+    <div id="loading" class="loading" role="status"><p id="loading-label">Свет уже горит…</p><progress id="load-progress" max="100" value="5" aria-label="Загрузка комнаты"></progress></div>
+    <section id="entrance" class="entrance" aria-label="Вход в комнату" hidden>
+      <p class="eyebrow">ПО ТУ СТОРОНУ ДВЕРИ</p>
+      <button id="enter" class="enter-button">Войти <span class="entrance-controls">W / щелчок</span></button>
+      <button id="skip" class="text-button">Пропустить вступление</button>
+    </section>
+    <div id="reticle" class="reticle" aria-hidden="true" hidden></div>
+    <button id="interact" class="interact" hidden><kbd>E</kbd> <span id="interaction-label">Выбрать кассету</span></button>
+    <div id="hotspots" class="hotspots"></div>
+    <footer class="footer">
+      <p id="controls-hint"><span class="desktop-hint"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> движение <span class="hint-divider">/</span> мышь — осмотр · Esc — меню</span><span class="touch-hint">Проведите пальцем, чтобы осмотреться</span></p>
+      <span class="edition"><span id="season-label">ОСЕНЬ</span><span class="small-dot">·</span>00:17</span>
+    </footer>
+    <nav id="quick-nav" class="quick-nav" aria-label="Перемещение по комнате" hidden>
+      <button data-view="room" class="active">Комната</button><button data-view="tv">Телевизор</button><button data-view="desk">Стол</button>
+    </nav>
+    <div id="mobile-move" class="mobile-move" aria-label="Движение" hidden><button data-move="forward" aria-label="Шаг вперёд">↑</button><button data-move="left" aria-label="Шаг влево">←</button><button data-move="back" aria-label="Шаг назад">↓</button><button data-move="right" aria-label="Шаг вправо">→</button></div>
+    <div id="playing-bar" class="playing-bar" hidden><span class="play-icon" aria-hidden="true">▶</span><span id="playing-title">Движение</span><span class="demo-chip">ДЕМО</span><button id="pause" aria-label="Пауза">Ⅱ</button><button id="fullscreen">На весь экран</button><button id="eject" aria-label="Извлечь кассету">⏏</button></div>
+    <div id="notice" role="status" class="notice" hidden></div>
+    <section id="fallback" class="fallback" hidden><h1>После полуночи</h1><p>В этом браузере не удалось включить 3D. Можно рассмотреть концепт комнаты и обложки кассет.</p><button id="fallback-concept" class="primary">Посмотреть комнату</button></section>
+  </main>
+
+  <dialog id="tapes-dialog" class="panel tapes-panel" aria-labelledby="tapes-heading">
+    <div class="panel-heading"><div><p class="eyebrow">VHS COLLECTION / 01—03</p><h1 id="tapes-heading">На полке</h1></div><button class="close" data-close aria-label="Закрыть">×</button></div>
+    <p class="panel-intro">Выберите кассету. Дальше — к телевизору.</p>
+    <div id="tape-grid" class="tape-grid"></div>
+    <p class="prototype-note">Демонстрационные кассеты для проверки просмотра. Авторские видео будут добавлены отдельно.</p>
+  </dialog>
+
+  <dialog id="tape-dialog" class="panel tape-detail" aria-labelledby="tape-heading">
+    <button class="close detail-close" data-close aria-label="Закрыть">×</button>
+    <div class="detail-cover"><img id="selected-cover" alt=""></div>
+    <div class="detail-copy"><p class="eyebrow" id="tape-number">КАССЕТА 01</p><h1 id="tape-heading">Движение</h1><p id="tape-description"></p><span class="demo-label">Демонстрационный этюд</span><button id="insert" class="primary">Вставить в видеомагнитофон <span aria-hidden="true">▶</span></button><button id="back-to-tapes" class="text-button">Все кассеты</button></div>
+  </dialog>
+
+  <dialog id="concept-dialog" class="panel concept-panel" aria-labelledby="concept-heading">
+    <div class="panel-heading"><div><p class="eyebrow">ПОСЛЕ ПОЛУНОЧИ</p><h1 id="concept-heading">Одна комната. Два ракурса.</h1></div><button class="close" data-close aria-label="Закрыть">×</button></div>
+    <div class="concept-switch" role="group" aria-label="Ракурс"><button class="active" data-concept="room">От двери</button><button data-concept="desk">У стола</button></div>
+    <figure><img id="concept-image" src="./assets/concept-room.png" alt="Концепт ночной комнаты: кровать слева, телевизор впереди, стол под окном справа."><figcaption id="concept-caption">Тёплая лампа, холодный экран, свободный центр комнаты.</figcaption></figure>
+  </dialog>
+
+  <dialog id="help-dialog" class="panel help-panel" aria-labelledby="help-heading">
+    <div class="panel-heading"><div><p class="eyebrow">ОСВАИВАЙТЕСЬ</p><h1 id="help-heading">Осмотритесь.</h1></div><button class="close" data-close aria-label="Закрыть">×</button></div>
+    <dl class="control-list"><div><dt><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></dt><dd>Ходить по комнате</dd></div><div><dt>Мышь / касание</dt><dd>Двигать мышью; на телефоне — провести пальцем</dd></div><div><dt><kbd>E</kbd> / нажатие</dt><dd>Взаимодействовать с предметом</dd></div><div><dt><kbd>F</kbd></dt><dd>Свободный обзор мышью</dd></div><div><dt><kbd>Esc</kbd></dt><dd>Освободить мышь / закрыть окно</dd></div></dl>
+    <p>Кнопки внизу перенесут к телевизору и столу. Кассеты всегда доступны через меню сверху.</p><p>Звук включается только по вашему желанию.</p><details class="asset-credits"><summary>Материалы</summary><p>Playstation 1 with Crash Bandicoot Disc — <a href="https://sketchfab.com/Sheyk940" target="_blank" rel="noopener noreferrer">Juan Galindo</a>, <a href="https://sketchfab.com/3d-models/playstation-1-with-crash-bandicoot-disc-93dbf6c499d84ae2ae2c7b07aa537a11" target="_blank" rel="noopener noreferrer">Sketchfab</a>, <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer">CC BY 4.0</a>. <span>Оптимизирована для сайта.</span></p><p>MindStream — DST · Searching — yd. <a href="https://creativecommons.org/publicdomain/zero/1.0/" target="_blank" rel="noopener noreferrer">CC0</a>.</p></details>
+  </dialog>
+
+  <dialog id="screen-dialog" class="screen-dialog" aria-label="Полноэкранный просмотр"><button class="close screen-close" data-close aria-label="Закрыть полноэкранный просмотр">×</button><canvas id="full-screen"></canvas><video id="project-video" controls playsinline hidden></video><div class="full-caption"><span id="full-title">Движение</span><span class="demo-chip" id="full-demo">ДЕМО</span><button id="full-pause" class="text-button">Пауза</button></div></dialog>
+  <dialog id="notebook-dialog" class="panel notebook-panel" aria-labelledby="notebook-heading">
+    <button class="close notebook-close" data-close aria-label="Закрыть">×</button>
+    <nav class="notebook-tabs" aria-label="Страницы тетради"><button data-page="about" class="active">Обо мне</button><button data-page="process">Процесс</button><button data-page="contact">Контакты</button></nav>
+    <div class="notebook-spread"><div class="notebook-left"><p class="paper-kicker">ЛИЧНЫЕ ЗАМЕТКИ</p><h1 id="notebook-heading">Обо мне</h1><p id="notebook-lead"></p><span class="paper-number">01 / 03</span></div><div class="notebook-right"><div id="notebook-body"></div><div class="paper-footer">После полуночи <span>↗</span></div></div></div>
+  </dialog>
+  <dialog id="music-dialog" class="panel music-panel" aria-labelledby="music-heading"><div class="panel-heading"><div><p class="eyebrow" id="music-eyebrow">СТЕРЕО / КАССЕТА A</p><h1 id="music-heading">Магнитофон</h1></div><button class="close" data-close aria-label="Закрыть">×</button></div><div class="music-display"><span id="music-status">STOP</span><h2 id="track-title"></h2><p id="track-author"></p><div class="music-progress"><span id="music-time">00:00</span><input id="music-seek" type="range" min="0" max="100" step="0.1" value="0" aria-label="Позиция воспроизведения"><span id="music-duration">00:00</span></div></div><div class="transport"><button id="music-prev" aria-label="Предыдущий трек">⏮</button><button id="music-play" aria-label="Воспроизвести музыку">▶</button><button id="music-next" aria-label="Следующий трек">⏭</button><label for="music-volume" id="volume-label">Громкость</label><input id="music-volume" type="range" min="0" max="1" step="0.01" value="0.35" aria-label="Громкость"></div><div id="music-tracks" class="music-tracks"></div><p class="music-credit"><a id="music-source" target="_blank" rel="noopener noreferrer">Источник записи / CC0</a></p><p id="music-error" role="status" hidden></p></dialog>
+  <dialog id="object-dialog" class="panel object-panel" aria-labelledby="object-heading"><div class="panel-heading"><div><p class="eyebrow">КОЛЛЕКЦИЯ</p><h1 id="object-heading"></h1></div><button class="close" data-close aria-label="Закрыть">×</button></div><img id="object-image" alt="" hidden><p id="object-description" class="panel-intro"></p></dialog>
+  <noscript><div class="fallback"><h1>После полуночи</h1><p>Для интерактивной комнаты нужен JavaScript.</p><img src="./assets/concept-room.png" alt="Концепт комнаты"></div></noscript>
+</body>
+</html>
