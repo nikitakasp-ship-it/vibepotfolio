@@ -1,0 +1,191 @@
+[
+  {
+    "file": "wood-1.ogg",
+    "source": "wood",
+    "start": 0.66,
+    "end": 1.1600000000000001,
+    "peak": 0.55,
+    "lowpassHz": 4000,
+    "changes": "mono, DC removal, peak normalization, 12ms fades, Ogg Vorbis"
+  },
+  {
+    "file": "wood-2.ogg",
+    "source": "wood",
+    "start": 1.38,
+    "end": 1.88,
+    "peak": 0.55,
+    "lowpassHz": 4000,
+    "changes": "mono, DC removal, peak normalization, 12ms fades, Ogg Vorbis"
+  },
+  {
+    "file": "wood-3.ogg",
+    "source": "wood",
+    "start": 2.1199999999999997,
+    "end": 2.6199999999999997,
+    "peak": 0.55,
+    "lowpassHz": 4000,
+    "changes": "mono, DC removal, peak normalization, 12ms fades, Ogg Vorbis"
+  },
+  {
+    "file": "wood-4.ogg",
+    "source": "wood",
+    "start": 4.180000000000001,
+    "end": 4.680000000000001,
+    "peak": 0.55,
+    "lowpassHz": 4000,
+    "changes": "mono, DC removal, peak normalization, 12ms fades, Ogg Vorbis"
+  },
+  {
+    "file": "wood-5.ogg",
+    "source": "wood",
+    "start": 5.58,
+    "end": 6.08,
+    "peak": 0.55,
+    "lowpassHz": 4000,
+    "changes": "mono, DC removal, peak normalization, 12ms fades, Ogg Vorbis"
+  },
+  {
+    "file": "wood-6.ogg",
+    "source": "wood",
+    "start": 6.36,
+    "end": 6.86,
+    "peak": 0.55,
+    "lowpassHz": 4000,
+    "changes": "mono, DC removal, peak normalization, 12ms fades, Ogg Vorbis"
+  },
+  {
+    "file": "carpet-1.ogg",
+    "source": "carpet",
+    "start": 0.52,
+    "end": 1.02,
+    "peak": 0.38,
+    "lowpassHz": 1800,
+    "changes": "mono, DC removal, peak normalization, 12ms fades, Ogg Vorbis"
+  },
+  {
+    "file": "carpet-2.ogg",
+    "source": "carpet",
+    "start": 1.1,
+    "end": 1.6,
+    "peak": 0.38,
+    "lowpassHz": 1800,
+    "changes": "mono, DC removal, peak normalization, 12ms fades, Ogg Vorbis"
+  },
+  {
+    "file": "carpet-3.ogg",
+    "source": "carpet",
+    "start": 2.7199999999999998,
+    "end": 3.2199999999999998,
+    "peak": 0.38,
+    "lowpassHz": 1800,
+    "changes": "mono, DC removal, peak normalization, 12ms fades, Ogg Vorbis"
+  },
+  {
+    "file": "carpet-4.ogg",
+    "source": "carpet",
+    "start": 3.82,
+    "end": 4.32,
+    "peak": 0.38,
+    "lowpassHz": 1800,
+    "changes": "mono, DC removal, peak normalization, 12ms fades, Ogg Vorbis"
+  },
+  {
+    "file": "carpet-5.ogg",
+    "source": "carpet",
+    "start": 4.760000000000001,
+    "end": 5.260000000000001,
+    "peak": 0.38,
+    "lowpassHz": 1800,
+    "changes": "mono, DC removal, peak normalization, 12ms fades, Ogg Vorbis"
+  },
+  {
+    "file": "carpet-6.ogg",
+    "source": "carpet",
+    "start": 5.48,
+    "end": 5.98,
+    "peak": 0.38,
+    "lowpassHz": 1800,
+    "changes": "mono, DC removal, peak normalization, 12ms fades, Ogg Vorbis"
+  },
+  {
+    "file": "bell-1.ogg",
+    "source": "bell",
+    "start": 0.5900000000000001,
+    "end": 1.8900000000000001,
+    "peak": 0.6,
+    "lowpassHz": 6500,
+    "changes": "mono, DC removal, peak normalization, 12ms fades, Ogg Vorbis"
+  },
+  {
+    "file": "bell-2.ogg",
+    "source": "bell",
+    "start": 2.0900000000000003,
+    "end": 3.39,
+    "peak": 0.6,
+    "lowpassHz": 6500,
+    "changes": "mono, DC removal, peak normalization, 12ms fades, Ogg Vorbis"
+  },
+  {
+    "file": "bell-3.ogg",
+    "source": "bell",
+    "start": 6.6499999999999995,
+    "end": 7.949999999999999,
+    "peak": 0.6,
+    "lowpassHz": 6500,
+    "changes": "mono, DC removal, peak normalization, 12ms fades, Ogg Vorbis"
+  },
+  {
+    "file": "door-open.ogg",
+    "source": "door",
+    "start": 0,
+    "end": 0.95,
+    "peak": 0.55,
+    "lowpassHz": 4500,
+    "changes": "mono, DC removal, peak normalization, 12ms fades, Ogg Vorbis"
+  },
+  {
+    "file": "door-close.ogg",
+    "source": "door",
+    "start": 1.88,
+    "end": 2.38,
+    "peak": 0.6,
+    "lowpassHz": 3500,
+    "changes": "mono, DC removal, peak normalization, 12ms fades, Ogg Vorbis"
+  },
+  {
+    "file": "wardrobe-open.ogg",
+    "source": "door",
+    "start": 3.92,
+    "end": 4.65,
+    "peak": 0.45,
+    "lowpassHz": 1500,
+    "changes": "mono, DC removal, peak normalization, 12ms fades, Ogg Vorbis"
+  },
+  {
+    "file": "wardrobe-close.ogg",
+    "source": "door",
+    "start": 5.74,
+    "end": 6.13,
+    "peak": 0.5,
+    "lowpassHz": 1000,
+    "changes": "mono, DC removal, peak normalization, 12ms fades, Ogg Vorbis"
+  },
+  {
+    "file": "vhs-in.ogg",
+    "source": "vhs",
+    "start": 0.08,
+    "end": 2.92,
+    "peak": 0.65,
+    "lowpassHz": 5000,
+    "changes": "mono, DC removal, peak normalization, 12ms fades, Ogg Vorbis"
+  },
+  {
+    "source": "Kenney Interface Sounds",
+    "files": [
+      "click_001.ogg",
+      "open_001.ogg",
+      "close_001.ogg"
+    ],
+    "changes": "renamed only"
+  }
+]

@@ -17,7 +17,15 @@
   let selected = PROJECTS[0], playing = null, paused = false, playbackTime = 0;
   let entered = false, entering = false, transition = null, dragging = false;
   let soundOn = false, audioContext = null, audioGain = null, noticeTimer;
-  let renderer, scene, camera, tvTexture, tvCanvas, tvContext, screenMesh, tvGlow, lampLight, lampShade, door;
+  let foley=null, effectsVolume=.65, wardrobeClosing=false, ps1Closing=false;
+  const syntheticVoices=new Map();
+  function stopFoley(group){foley?.stop(group);const g=syntheticVoices.get(group);if(g&&audioContext)g.gain.setTargetAtTime(0,audioContext.currentTime,.012);syntheticVoices.delete(group);}
+  function applySoundLevels(){
+    if(audioContext&&audioGain)audioGain.gain.setTargetAtTime(soundOn&&!document.hidden?.55*effectsVolume:0,audioContext.currentTime,.04);
+    music.muted=!soundOn||document.hidden;$('project-video').muted=!soundOn||document.hidden;
+    if(!soundOn||document.hidden){foley?.stopAll();for(const group of syntheticVoices.keys())stopFoley(group);}
+  }
+  let renderer, scene, camera, tvTexture, tvCanvas, tvContext, screenMesh, tvGlow, lampLight, lampShade, door, deskLight;
   let currentTarget = null, lastFrame = 0, clockSeconds = 0, lastTVDraw = 0, lastOverlay = 0;
   let yaw = 0, pitch = 0, lampOn = true, animationId, movingTape = null, insertionSequence = 0;
   const keys = new Set(), touchKeys = new Set(), interactive = [], hotspots = [], colliders = [];
@@ -31,16 +39,16 @@
 
   function notice(message) {clearTimeout(noticeTimer);$('notice').textContent=translated(message);$('notice').hidden=false;noticeTimer=setTimeout(()=>{$('notice').hidden=true;},3200);}
   function openDialog(id) {
-    keys.clear();touchKeys.clear();dragging=false;freeLook=false;
+    releaseLook();touchKeys.clear();
     if (document.pointerLockElement) document.exitPointerLock();
     document.querySelectorAll('dialog[open]').forEach(d=>d.close());
-    $(id).showModal();
+    $(id).showModal();if(id==='tapes-dialog')populateTapes();document.body.classList.toggle('diary-open',id==='notebook-dialog');
   }
   function closeDialogs() {document.querySelectorAll('dialog[open]').forEach(d=>d.close());}
   document.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click',()=>b.closest('dialog').close()));
   document.querySelectorAll('dialog').forEach(d=>{
     d.addEventListener('click',e=>{if(e.target===d){const r=d.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)d.close();}});
-    d.addEventListener('close',()=>{keys.clear();if(entered)$('room').focus({preventScroll:true});});
+    d.addEventListener('close',()=>{if(d.id==='notebook-dialog'&&!d.open){document.body.classList.remove('diary-open');cancelDiaryTurn();if(diaryPose&&camera){camera.position.copy(diaryPose.position);camera.quaternion.copy(diaryPose.quaternion);pitch=diaryPose.pitch;yaw=diaryPose.yaw;diaryPose=null;}}keys.clear();if(entered)$('room').focus({preventScroll:true});});
   });
 
   // The moving studies are clearly marked as demo content; supplied projects can replace video:null.
@@ -73,13 +81,58 @@
     project.cover=c.toDataURL('image/png');project.coverCanvas=c;
   }
   PROJECTS.forEach(makeCover);
-  function populateTapes(){
-    $('tape-grid').replaceChildren();
-    PROJECTS.forEach(p=>{const b=document.createElement('button');b.className='tape-card';b.setAttribute('aria-label',txt('Рассмотреть кассету ','View tape ')+p.number+': '+p.title);b.innerHTML=`<div class="tape-cover"><img src="${p.cover}" alt="${p.title} — ${txt('графическая обложка','illustrated cover')}"></div><div class="tape-meta"><strong>${p.title}</strong><span>${p.number} / ${txt('ДЕМО','DEMO')}</span></div><p class="tape-subtitle">${p.subtitle}</p>`;b.addEventListener('click',()=>selectTape(p));$('tape-grid').append(b);});
+  let catalogPage=0;
+  const catalogPageSize=8;
+  function previewTape(project){
+    selected=project;
+    $('library-title').textContent=project.title;$('library-description').textContent=project.description;
+    $('library-number').textContent='VHS / '+project.number+' / '+(project.video?txt('ВИДЕО','VIDEO'):txt('ДЕМО','DEMO'));
+    const c=$('library-still');drawStudy(c.getContext('2d'),c.width,c.height,PROJECTS.indexOf(project),1.7,true);
+    $('library-play').disabled=!renderer;
+    document.querySelectorAll('.tape-card').forEach(b=>{const active=b.dataset.project===project.id;b.classList.toggle('active',active);b.setAttribute('aria-pressed',active);});
   }
+  function populateTapes(){
+    const query=$('tape-search').value.trim().toLocaleLowerCase(),filter=$('tape-filter').value;
+    let items=PROJECTS.filter(p=>(filter==='all'||(filter==='video'?!!p.video:!p.video))&&[p.title,p.subtitle,p.number].join(' ').toLocaleLowerCase().includes(query));
+    if($('tape-sort').value==='title')items.sort((a,b)=>a.title.localeCompare(b.title,language));
+    catalogPage=Math.min(catalogPage,Math.max(0,Math.ceil(items.length/catalogPageSize)-1));
+    const start=catalogPage*catalogPageSize,visible=items.slice(start,start+catalogPageSize);
+    $('tape-grid').replaceChildren();
+    visible.forEach(p=>{const b=document.createElement('button');b.className='tape-card';b.dataset.project=p.id;b.setAttribute('aria-label',txt('Выбрать кассету ','Select tape ')+p.number+': '+p.title);
+      const cover=document.createElement('div');cover.className='tape-cover';const img=document.createElement('img');img.src=p.cover;img.alt='';cover.append(img);
+      const meta=document.createElement('div');meta.className='tape-meta';const title=document.createElement('strong');title.textContent=p.title;const number=document.createElement('span');number.textContent=p.number+' / '+(p.video?'VIDEO':'DEMO');meta.append(title,number);b.append(cover,meta);b.onclick=()=>previewTape(p);$('tape-grid').append(b);
+    });
+    $('tape-empty').hidden=!!items.length;$('tape-empty').textContent=txt('Ничего не найдено. Измените поиск или категорию.','No matches. Change the search or category.');
+    $('tape-count').textContent=items.length?`${start+1}–${Math.min(start+catalogPageSize,items.length)} / ${items.length}`:'0 / 0';
+    $('tape-prev').disabled=catalogPage===0;$('tape-next').disabled=start+catalogPageSize>=items.length;
+    document.querySelector('.library-preview').hidden=!items.length;
+    if(items.length)previewTape(visible.find(p=>p===selected)||visible[0]);
+    $('tape-search').placeholder=txt('Поиск по работам','Search projects');
+    $('tapes-heading').textContent=txt('Видеотека','Video library');$('library-play').textContent=txt('Смотреть ▶','Watch ▶');$('library-details').textContent=txt('Обложка и описание','Cover and details');
+    ['Все работы','Демо','Видео'].forEach((v,i)=>$('tape-filter').options[i].text=language==='ru'?v:['All projects','Demos','Videos'][i]);
+    $('tape-sort').options[0].text=txt('По номеру','By number');$('tape-sort').options[1].text=txt('По названию','By title');
+  }
+  for(const id of ['tape-search','tape-filter','tape-sort'])$(id).addEventListener(id==='tape-search'?'input':'change',()=>{catalogPage=0;populateTapes();});
+  $('tape-prev').onclick=()=>{catalogPage--;populateTapes();};$('tape-next').onclick=()=>{catalogPage++;populateTapes();};
+  $('library-play').onclick=()=>insertTape();$('library-details').onclick=()=>selectTape(selected);
   function selectTape(project){selected=project;$('selected-cover').src=project.cover;$('selected-cover').alt=txt('Обложка кассеты: ','Tape cover: ')+project.title;$('tape-heading').textContent=project.title;$('tape-description').textContent=project.description;$('tape-number').textContent=txt('КАССЕТА ','TAPE ')+project.number+' / VHS';$('insert').disabled=!renderer;openDialog('tape-dialog');}
   populateTapes();
   $('tapes-menu').onclick=()=>openDialog('tapes-dialog');$('back-to-tapes').onclick=()=>openDialog('tapes-dialog');
+  const weatherContext=new RoomWeather.WeatherContext({onChange:state=>{
+    const messages={off:['Сбор данных выключен.','Data collection is off.'],locating:['Запрашиваем разовое местоположение…','Requesting location once…'],loading:['Получаем погоду…','Loading weather…'],ready:['Погода получена. Эффекты в комнате пока не подключены.','Weather received. Room effects are not connected yet.']};
+    const errors={denied:['Доступ к местоположению отклонён. Комната работает без него.','Location access denied. The room works without it.'],timeout:['Время ожидания истекло. Можно повторить запрос.','Request timed out. You can try again.'],unavailable:['Местоположение недоступно. Для этой функции нужен HTTPS и поддержка браузера.','Location is unavailable. HTTPS and browser support are required.'],network:['Не удалось получить погоду. Попробуйте позже.','Could not load weather. Please try later.']};
+    const message=state.status==='error'?errors[state.error]||errors.network:messages[state.status];
+    $('weather-status').textContent=txt(...message);
+    $('weather-disable').hidden=state.status==='off';
+    $('weather-enable').disabled=!RoomWeather.config.enabled||!$('weather-consent').checked||['locating','loading'].includes(state.status);
+    // Future outdoor effects subscribe to data; no scene presets are applied here.
+    window.dispatchEvent(new CustomEvent('room-weather-change',{detail:state}));
+  }});
+  if(RoomWeather.config.enabled){$('weather-consent').disabled=false;$('weather-stage').textContent=txt('Можно подключить местную погоду. Визуальные эффекты пока не подключены.','Local weather can be connected. Visual effects are not connected yet.');}
+  $('weather-consent').onchange=()=>{if(!$('weather-consent').checked)weatherContext.disable();$('weather-enable').disabled=!RoomWeather.config.enabled||!$('weather-consent').checked;};
+  $('weather-enable').onclick=()=>weatherContext.enable({consent:$('weather-consent').checked});
+  $('weather-disable').onclick=()=>{$('weather-consent').checked=false;weatherContext.disable();};
+  window.addEventListener('pagehide',()=>{$('weather-consent').checked=false;weatherContext.disable();});
   $('concept-menu').onclick=()=>openDialog('concept-dialog');$('fallback-concept').onclick=()=>openDialog('concept-dialog');$('help-menu').onclick=()=>openDialog('help-dialog');
   document.querySelectorAll('[data-concept]').forEach(b=>b.onclick=()=>{const room=b.dataset.concept==='room';$('concept-image').src=room?'./assets/concept-room.png':'./assets/concept-desk.png';$('concept-image').alt=room?'Обновлённый общий ракурс ночной комнаты от двери':'Обновлённый ракурс стола с PS1, контроллером и иллюстрированными игровыми обложками';$('concept-caption').textContent=room?'Тёплая лампа, холодный экран, свободный центр комнаты.':'PS1, любимые обложки и маленькие вещи, которые возвращают в детство.';document.querySelectorAll('[data-concept]').forEach(x=>x.classList.toggle('active',x===b));});
 
@@ -240,11 +293,11 @@
   function dust(){const g=new THREE.BufferGeometry(),p=new Float32Array(90*3);for(let i=0;i<90;i++){p[i*3]=(random()-.5)*5.6;p[i*3+1]=.3+random()*2.7;p[i*3+2]=(random()-.5)*6;}g.setAttribute('position',new THREE.BufferAttribute(p,3));const m=new THREE.PointsMaterial({color:'#ddc299',size:.011,transparent:true,opacity:.25,depthWrite:false});scene.add(new THREE.Points(g,m));}
 
   function toggleLamp(){lampOn=!lampOn;lampLight.intensity=lampOn?2.7:0;lampShade.material.emissiveIntensity=lampOn?.32:.015;clickSound();}
-  function clickSound(){if(!soundOn||!audioContext)return;const osc=audioContext.createOscillator(),gain=audioContext.createGain();osc.type='triangle';osc.frequency.setValueAtTime(95,audioContext.currentTime);osc.frequency.exponentialRampToValueAtTime(35,audioContext.currentTime+.08);gain.gain.setValueAtTime(.055,audioContext.currentTime);gain.gain.exponentialRampToValueAtTime(.0001,audioContext.currentTime+.09);osc.connect(gain);gain.connect(audioGain);osc.start();osc.stop(audioContext.currentTime+.1);}
+  function clickSound(){soundEffect('ui-click');}
   $('sound').onclick=()=>{soundChoice=true;soundOn=!soundOn;ensureSound();};
 
   function getView(name){
-    return {room:{pos:V(-1.28,1.61,2.05),look:V(.55,1.1,-1.75)},tv:{pos:V(-.22,1.28,-.70),look:V(-.22,1.10,-2.10)},desk:{pos:V(.68,1.48,-.42),look:V(1.77,.88,-.50)},ps1:{pos:V(.12,.72,-.89),look:V(.12,.09,-1.53)},shelves:{pos:V(-.25,2.0,.1),look:V(-2.08,2.12,-.25)},bike:{pos:V(-.85,1.12,1.63),look:V(-1.84,.51,1.15)},wardrobe:{pos:V(.49,1.48,1.64),look:V(1.95,1.20,1.91)},curtains:{pos:V(.95,1.58,-1.28),look:V(1.05,1.87,-2.26)},entrance:{pos:V(-1.525,1.20,4.95),look:V(-1.525,1.06,2.85)}}[name];
+    return {room:{pos:V(-1.28,1.61,2.05),look:V(.55,1.1,-1.75)},tv:{pos:V(-.22,1.28,-.70),look:V(-.22,1.10,-2.10)},desk:{pos:V(.68,1.48,-.42),look:V(1.77,.88,-.50)},ps1:{pos:V(.12,.72,-.89),look:V(.12,.09,-1.53)},shelves:{pos:V(-.25,2.0,.1),look:V(-2.08,2.12,-.25)},bedMap:{pos:V(-.95,1.70,-1.73),look:V(-2.18,1.9,-1.8)},doorEdge:{pos:V(-.62,1.28,2.25),look:V(-1.10,1.12,2.85)},doorInside:{pos:V(-1.525,1.30,1.40),look:V(-1.525,1.10,2.85)},bikeHandlebars:{pos:V(-1.18,1.40,1.22),look:V(-1.84,.98,.67)},bike:{pos:V(-.85,1.12,1.63),look:V(-1.84,.51,1.15)},wardrobe:{pos:V(.49,1.48,1.64),look:V(1.95,1.20,1.91)},curtains:{pos:V(.95,1.58,-1.28),look:V(1.05,1.87,-2.26)},entrance:{pos:V(-1.525,1.20,4.95),look:V(-1.525,1.06,2.85)}}[name];
   }
 
   function setLook(look){camera.lookAt(look);pitch=camera.rotation.x;yaw=camera.rotation.y;}
@@ -252,17 +305,17 @@
     if(!renderer)return;
 
     if(!onComplete)cancelInsertion();
-    if(!entered&&name!=='entrance'){entered=true;entering=false;$('entrance').hidden=true;$('quick-nav').hidden=!!playing;$('mobile-move').hidden=false;}
+    if(!entered&&name!=='entrance'){entered=true;entering=false;$('entrance').hidden=true;$('quick-nav').hidden=false;$('mobile-move').hidden=false;}
     const view=getView(name);if(!view)return;
-    keys.clear();const q=new THREE.Quaternion(),dummy=new THREE.PerspectiveCamera();dummy.position.copy(view.pos);dummy.rotation.order='YXZ';dummy.lookAt(view.look);q.copy(dummy.quaternion);
+    keys.clear();touchKeys.clear();resetLookDrag();const q=new THREE.Quaternion(),dummy=new THREE.PerspectiveCamera();dummy.position.copy(view.pos);dummy.rotation.order='YXZ';dummy.lookAt(view.look);q.copy(dummy.quaternion);
     if(instant||reducedMotion){camera.position.copy(view.pos);camera.quaternion.copy(q);pitch=camera.rotation.x;yaw=camera.rotation.y;transition=null;onComplete?.();}
     else transition={start:performance.now(),duration:entering?2200:(name==='entrance'?1000:1250),from:camera.position.clone(),to:view.pos.clone(),qFrom:camera.quaternion.clone(),qTo:q,complete:onComplete};
     document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===name));
     $('reticle').hidden=!entered;$('room').focus({preventScroll:true});
   }
   function closeEntryDoor(sequence){
-    soundEffect('door-close');const start=performance.now(),angle=door.rotation.y;
-    function step(now){if(sequence!==entranceSequence)return;const t=reducedMotion?1:clamp((now-start)/750,0,1);door.rotation.y=angle*(1-t*t*(3-2*t));if(t<1)requestAnimationFrame(step);}
+    stopFoley('door');const start=performance.now(),angle=door.rotation.y;
+    function step(now){if(sequence!==entranceSequence)return;const t=reducedMotion?1:clamp((now-start)/750,0,1);door.rotation.y=angle*(1-t*t*(3-2*t));if(t<1)requestAnimationFrame(step);else soundEffect('door-close');}
     requestAnimationFrame(step);
   }
   function syncAnalogViewing(){document.body.classList.remove('tv-view');}
@@ -273,24 +326,24 @@
     entered=true;goTo('room',false,()=>{entering=false;closeEntryDoor(entryId);$('quick-nav').hidden=false;$('mobile-move').hidden=false;});
   }
   $('enter').onclick=()=>enterRoom();$('skip').onclick=()=>enterRoom(true);
-  $('home').onclick=()=>{if(!renderer)return;releaseLook();entranceSequence++;cancelInsertion();closeDialogs();eject(false);entered=false;entering=false;$('reticle').hidden=true;$('hotspots').hidden=true;$('quick-nav').hidden=true;$('mobile-move').hidden=true;goTo('entrance',false,()=>{$('entrance').hidden=false;});door.rotation.y=0;};
+  $('home').onclick=()=>{if(!renderer)return;releaseLook();entranceSequence++;stopFoley('door');cancelInsertion();closeDialogs();eject(false);entered=false;entering=false;$('reticle').hidden=true;$('hotspots').hidden=true;$('quick-nav').hidden=true;$('mobile-move').hidden=true;goTo('entrance',false,()=>{$('entrance').hidden=false;});door.rotation.y=0;};
   document.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>{goTo(b.dataset.view);});
 
-  function cancelInsertion(){insertionSequence++;if(movingTape){scene.remove(movingTape);movingTape=null;}$('insert').disabled=!renderer;}
+  function cancelInsertion(){stopFoley('vhs');insertionSequence++;if(movingTape){scene.remove(movingTape);movingTape=null;}$('insert').disabled=!renderer;}
   function insertTape(){
     if(!renderer)return;cancelInsertion();const project=selected,sequence=insertionSequence;closeDialogs();$('quick-nav').hidden=true;$('insert').disabled=true;soundEffect('case-open');
     // Capture the selected item for the complete camera + insertion sequence.
     goTo('tv',false,()=>{
       if(sequence!==insertionSequence)return;
       soundEffect('tape-in');movingTape=new THREE.Group();scene.add(movingTape);box(.28,.027,.18,0,0,0,materials.black,movingTape);const tex=new THREE.CanvasTexture(project.coverCanvas);tex.encoding=THREE.sRGBEncoding;const label=flat(.22,.135,0,.014,0,mat('#fff',{map:tex}),movingTape);label.rotation.x=-Math.PI/2;movingTape.position.set(-.262,.464,-1.48);
-      const object=movingTape,start=performance.now();const animate=now=>{if(sequence!==insertionSequence){object.traverse(o=>{if(o.geometry)o.geometry.dispose();});tex.dispose();return;}const t=reducedMotion?1:clamp((now-start)/850,0,1);object.position.z=-1.48-.54*(t*t*(3-2*t));if(t<1){requestAnimationFrame(animate);return;}scene.remove(object);object.traverse(o=>{if(o.geometry)o.geometry.dispose();});tex.dispose();movingTape=null;startPlayback(project);$('insert').disabled=false;};requestAnimationFrame(animate);
+      const object=movingTape,start=performance.now();const animate=now=>{if(sequence!==insertionSequence){object.traverse(o=>{if(o.geometry)o.geometry.dispose();});tex.dispose();return;}const t=reducedMotion?1:clamp((now-start)/2840,0,1);object.position.z=-1.48-.54*(t*t*(3-2*t));if(t<1){requestAnimationFrame(animate);return;}scene.remove(object);object.traverse(o=>{if(o.geometry)o.geometry.dispose();});tex.dispose();movingTape=null;startPlayback(project);$('insert').disabled=false;};requestAnimationFrame(animate);
     });
   }
-  function startPlayback(project){soundEffect('tape-start');PROJECTS.forEach(p=>{if(p.sceneObject)p.sceneObject.visible=p!==project;});playing=project;musicUI();paused=false;playbackTime=0;$('playing-title').textContent=project.title;$('playing-bar').hidden=false;$('quick-nav').hidden=true;$('pause').textContent='Ⅱ';$('pause').setAttribute('aria-label',txt('Пауза','Pause'));$('full-pause').textContent=txt('Пауза','Pause');clickSound();const video=$('project-video');if(project.video){video.src=project.video;video.load();video.play().catch(()=>notice('Нажмите воспроизведение на видео.'));screenMesh.material.map=new THREE.VideoTexture(video);}else{screenMesh.material.map=tvTexture;}screenMesh.material.needsUpdate=true;}
-  function togglePause(){if(!playing)return;paused=!paused;$('pause').textContent=paused?'▶':'Ⅱ';$('pause').setAttribute('aria-label',paused?txt('Продолжить','Resume'):txt('Пауза','Pause'));$('full-pause').textContent=paused?txt('Продолжить','Resume'):txt('Пауза','Pause');if(playing.video){if(paused)$('project-video').pause();else $('project-video').play().catch(()=>notice('Нажмите воспроизведение на видео.'));}}
-  function eject(showNotice=true){if(movingTape)return;playing=null;paused=false;document.body.classList.remove('tv-view');PROJECTS.forEach(p=>{if(p.sceneObject)p.sceneObject.visible=true;});musicUI();$('project-video').pause();$('playing-bar').hidden=true;$('quick-nav').hidden=!entered;if(screenMesh){screenMesh.material.map=tvTexture;screenMesh.material.needsUpdate=true;}$('screen-dialog').close();if(showNotice){soundEffect('tape-out');notice('Кассета извлечена');}}
+  function startPlayback(project){soundEffect('tape-start');PROJECTS.forEach(p=>{if(p.sceneObject)p.sceneObject.visible=p!==project;});playing=project;musicUI();paused=false;playbackTime=0;$('quick-nav').hidden=!entered;$('full-pause').textContent=txt('Пауза','Pause');clickSound();const video=$('project-video');if(project.video){video.src=project.video;video.load();video.play().catch(()=>notice('Нажмите воспроизведение на видео.'));screenMesh.material.map=new THREE.VideoTexture(video);}else{screenMesh.material.map=tvTexture;}screenMesh.material.needsUpdate=true;}
+  function togglePause(){if(!playing)return;paused=!paused;$('full-pause').textContent=paused?txt('Продолжить','Resume'):txt('Пауза','Pause');if(playing.video){if(paused)$('project-video').pause();else $('project-video').play().catch(()=>notice('Нажмите воспроизведение на видео.'));}}
+  function eject(showNotice=true){if(movingTape)return;playing=null;paused=false;document.body.classList.remove('tv-view');PROJECTS.forEach(p=>{if(p.sceneObject)p.sceneObject.visible=true;});musicUI();$('project-video').pause();$('quick-nav').hidden=!entered;if(screenMesh){screenMesh.material.map=tvTexture;screenMesh.material.needsUpdate=true;}$('screen-dialog').close();if(showNotice){soundEffect('tape-out');notice('Кассета извлечена');}}
   function openScreen(){if(!playing){openDialog('tapes-dialog');return;}$('full-title').textContent=playing.title;$('full-demo').hidden=!!playing.video;$('project-video').hidden=!playing.video;$('full-screen').hidden=!!playing.video;openDialog('screen-dialog');}
-  $('insert').onclick=insertTape;$('pause').onclick=togglePause;$('full-pause').onclick=togglePause;$('eject').onclick=()=>eject();$('fullscreen').onclick=openScreen;
+  $('insert').onclick=insertTape;$('full-pause').onclick=togglePause;$('full-eject').onclick=()=>eject();
   $('project-video').addEventListener('error',()=>notice('Видео не удалось загрузить. Проверьте файл проекта.'));
 
   function canMove(x,z){if(x< -1.98||x>1.98||z< -2.25||z>2.60)return false;const r=.17;return !colliders.some(c=>x>c.x1-r&&x<c.x2+r&&z>c.z1-r&&z<c.z2+r);}
@@ -300,20 +353,46 @@
     if(canMove(camera.position.x+dx,camera.position.z))camera.position.x+=dx;if(canMove(camera.position.x,camera.position.z+dz))camera.position.z+=dz;
     stepDistance+=Math.hypot(camera.position.x-previous.x,camera.position.z-previous.z);if(stepDistance>.57){stepDistance%=.57;const carpet=Math.abs(camera.position.x)<.91&&camera.position.z>-.745&&camera.position.z<1.805;soundEffect(carpet?'carpet-step':'floor-step');}camera.position.y=1.55;document.querySelectorAll('[data-view]').forEach(b=>b.classList.remove('active'));
   }
-  let dragStart={x:0,y:0},lastPointer={x:0,y:0},pointerMoved=false;
+  const lookInput=new RoomLookInput();
+  function resetLookDrag(){
+    const id=lookInput.pointerId;lookInput.reset();dragging=false;
+    if(id!==null&&$('room').hasPointerCapture?.(id))$('room').releasePointerCapture(id);
+  }
+  function rotateLook(dx,dy){
+    const next=RoomLookInput.rotate(yaw,pitch,dx,dy);if(!next)return;
+    yaw=next.yaw;pitch=next.pitch;camera.rotation.set(pitch,yaw,0,'YXZ');
+  }
+  function tapRoom(e){
+    const rect=$('room').getBoundingClientRect();
+    pointer.set((e.clientX-rect.left)/rect.width*2-1,-(e.clientY-rect.top)/rect.height*2+1);
+    raycaster.setFromCamera(pointer,camera);const hits=raycaster.intersectObjects(interactive.filter(o=>o.visible),true);
+    if(hits[0]&&hits[0].distance<2.25&&visibleTarget(hits[0]))hits[0].object.userData.action?.();
+  }
   $('room').addEventListener('pointerdown',e=>{
-    if(e.button!==0)return;if(!entered&&!entering&&!dialogOpen()){enterRoom();return;}if(entering||dialogOpen()||transition)return;
-    if(e.pointerType==='touch'){dragging=true;pointerMoved=false;dragStart={x:e.clientX,y:e.clientY};lastPointer={...dragStart};$('room').setPointerCapture?.(e.pointerId);return;}
-    if(document.pointerLockElement===$('room')){currentTarget?.();return;}requestLook();
+    if(e.button!==0)return;if(!entered&&!entering&&!dialogOpen()){enterRoom();return;}
+    if(entering||dialogOpen()||transition)return;
+    if(document.pointerLockElement===$('room')){currentTarget?.();return;}
+    if(!lookInput.begin(e))return;dragging=true;e.preventDefault();
+    $('room').setPointerCapture?.(e.pointerId);
+    if(e.pointerType==='mouse')requestLook();
   });
   $('room').addEventListener('pointermove',e=>{
-    if(!entered||dialogOpen()||transition)return;const locked=document.pointerLockElement===$('room'),touch=e.pointerType==='touch';
-    if(touch&&!dragging)return;if(!touch&&!locked&&!freeLook)return;
-    const dx=locked||!touch?e.movementX:e.clientX-lastPointer.x,dy=locked||!touch?e.movementY:e.clientY-lastPointer.y;lastPointer={x:e.clientX,y:e.clientY};
-    if(Math.hypot(e.clientX-dragStart.x,e.clientY-dragStart.y)>6)pointerMoved=true;yaw-=dx*.0026;pitch=clamp(pitch-dy*.0022,-.98,.92);camera.rotation.set(pitch,yaw,0,'YXZ');
+    if(!entered||entering||dialogOpen()||transition||document.pointerLockElement===$('room'))return;
+    const delta=lookInput.move(e);if(delta){e.preventDefault();rotateLook(delta.x,delta.y);}
   });
-  $('room').addEventListener('pointerup',e=>{if(e.pointerType==='touch'&&dragging&&!pointerMoved&&!transition&&!dialogOpen()){pointer.set(e.clientX/window.innerWidth*2-1,-e.clientY/window.innerHeight*2+1);raycaster.setFromCamera(pointer,camera);const hits=raycaster.intersectObjects(interactive.filter(o=>o.visible),true);if(hits[0]&&hits[0].distance<2.25&&visibleTarget(hits[0]))hits[0].object.userData.action?.();}dragging=false;});
-  $('room').addEventListener('pointercancel',()=>{dragging=false;});
+  // Relative movement is read only while locked. Unlocked drag uses client coordinates.
+  document.addEventListener('mousemove',e=>{
+    if(document.pointerLockElement!==$('room')||!entered||entering||dialogOpen()||transition)return;
+    rotateLook(e.movementX,e.movementY);
+  });
+  $('room').addEventListener('pointerup',e=>{
+    const tap=lookInput.end(e);if(tap===null)return;dragging=false;
+    if($('room').hasPointerCapture?.(e.pointerId))$('room').releasePointerCapture(e.pointerId);
+    if(tap&&!transition&&!dialogOpen()&&document.pointerLockElement!==$('room'))tapRoom(e);
+  });
+  const cancelPointer=e=>{if(e.pointerId===lookInput.pointerId)resetLookDrag();};
+  $('room').addEventListener('pointercancel',cancelPointer);
+  $('room').addEventListener('lostpointercapture',cancelPointer);
   window.addEventListener('keydown',e=>{
     if(e.code==='Escape'){releaseLook();touchKeys.clear();return;}
     if(dialogOpen())return;if(!entered){if(e.code==='KeyW'&&!e.repeat){e.preventDefault();enterRoom();}return;}
@@ -321,8 +400,8 @@
     if(e.code==='KeyE'&&!e.repeat&&currentTarget)currentTarget();
     if(e.code==='KeyF'&&!e.repeat){e.preventDefault();requestLook();}
   });
-  window.addEventListener('keyup',e=>keys.delete(e.code));window.addEventListener('blur',()=>{keys.clear();touchKeys.clear();dragging=false;});
-  document.addEventListener('visibilitychange',()=>{keys.clear();touchKeys.clear();if(audioContext&&audioGain)audioGain.gain.setTargetAtTime(soundOn&&!document.hidden?.55:0,audioContext.currentTime,.1);});
+  window.addEventListener('keyup',e=>keys.delete(e.code));window.addEventListener('blur',()=>{releaseLook();touchKeys.clear();});
+  document.addEventListener('visibilitychange',()=>{keys.clear();touchKeys.clear();if(document.hidden)releaseLook();applySoundLevels();});
   document.querySelectorAll('[data-move]').forEach(b=>{b.onpointerdown=e=>{e.preventDefault();touchKeys.add(b.dataset.move);b.setPointerCapture(e.pointerId);};b.onpointerup=b.onpointercancel=()=>touchKeys.delete(b.dataset.move);});
   $('interact').onclick=()=>currentTarget?.();
 
@@ -353,7 +432,7 @@
   function tick(now){
     animationId=requestAnimationFrame(tick);if(document.hidden){clock.getDelta();return;}const dt=Math.min(clock.getDelta(),.05),time=clock.elapsedTime;
     if(transition){const tr=transition,t=clamp((now-tr.start)/tr.duration,0,1),smooth=t*t*(3-2*t);camera.position.lerpVectors(tr.from,tr.to,smooth);camera.quaternion.slerpQuaternions(tr.qFrom,tr.qTo,smooth);if(t>=1){transition=null;pitch=camera.rotation.x;yaw=camera.rotation.y;tr.complete?.();}}
-    walk(dt);syncAnalogViewing();updateSound();if(ps1Lid){ps1Angle=THREE.MathUtils.damp(ps1Angle,ps1Open?-1.18:0,6,dt);ps1Lid.rotation.x=ps1Angle;}updateRoomDetails(dt,time);musicTick(dt);if(playing&&!paused)playbackTime+=dt;if(now-lastTVDraw>1000/24){drawTV(time);lastTVDraw=now;}if(now-lastOverlay>90){updateOverlays();lastOverlay=now;}
+    walk(dt);syncAnalogViewing();updateSound();if(ps1Lid){ps1Angle=THREE.MathUtils.damp(ps1Angle,ps1Open?-1.18:0,6,dt);ps1Lid.rotation.x=ps1Angle;if(ps1Closing&&Math.abs(ps1Angle)<.015){ps1Closing=false;soundEffect('lid-close');}}updateRoomDetails(dt,time);musicTick(dt);if(playing&&!paused)playbackTime+=dt;if(now-lastTVDraw>1000/24){drawTV(time);lastTVDraw=now;}if(now-lastOverlay>90){updateOverlays();lastOverlay=now;}
     clockSeconds+=dt;$('clock').textContent=`00:${String(17+Math.floor(clockSeconds/60)%43).padStart(2,'0')}:${String(Math.floor(clockSeconds)%60).padStart(2,'0')}`;
     renderer.render(scene,camera);lastFrame=now;
   }
@@ -366,30 +445,41 @@
   }
   function ensureSound(){
     if(!audioContext){const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;
-      audioContext=new AC();audioGain=audioContext.createGain();audioGain.gain.value=0;audioGain.connect(audioContext.destination);
+      audioContext=new AC();audioGain=audioContext.createGain();audioGain.gain.value=0;audioGain.connect(audioContext.destination);foley=new RoomAudio(audioContext,audioGain);
       const buffer=audioContext.createBuffer(1,audioContext.sampleRate*3,audioContext.sampleRate),data=buffer.getChannelData(0);
       for(let i=0;i<data.length;i++)data[i]=(Math.random()*2-1);
       const noise=audioContext.createBufferSource();noise.buffer=buffer;noise.loop=true;const filter=audioContext.createBiquadFilter();filter.type='bandpass';filter.frequency.value=1800;filter.Q.value=.45;
       tvHissGain=audioContext.createGain();tvHissGain.gain.value=0;noise.connect(filter);filter.connect(tvHissGain);tvHissGain.connect(audioGain);noise.start();
     }
-    audioContext.resume().catch(()=>{});audioGain.gain.setTargetAtTime(soundOn?.55:0,audioContext.currentTime,.06);soundUI();
+    audioContext.resume().catch(()=>{});applySoundLevels();soundUI();
   }
   function enableEntrySound(){if(!soundChoice)soundOn=true;ensureSound();}
   function soundEffect(kind){
     if(!soundOn||!audioContext)return;
     soundEvents.push(kind);if(soundEvents.length>16)soundEvents.shift();
+    const group=kind.startsWith('tape-')?'vhs':kind.startsWith('wardrobe-')?'wardrobe':kind.startsWith('lid-')?'ps1':kind.startsWith('door-')?'door':kind;
+    stopFoley(group);
+    if(foley?.play(kind))return;
+    const effectOutput=audioContext.createGain();syntheticVoices.set(group,effectOutput);
+    const pos=kind.startsWith('tape-')?[-.26,.46,-1.8]:kind.startsWith('wardrobe-')?[1.95,1.2,1.91]:kind.startsWith('lid-')?[.12,.09,-1.53]:kind==='curtain-slide'?[1.1,1.8,-2.26]:null;
+    const effectPanner=pos?foley?.panner(pos):null;effectOutput.connect(effectPanner||audioGain);effectPanner?.connect(audioGain);
+    setTimeout(()=>{effectOutput.disconnect();effectPanner?.disconnect();if(syntheticVoices.get(group)===effectOutput)syntheticVoices.delete(group);},2300);
     const t=audioContext.currentTime;
     function tone(delay,duration,f1,f2,level,type='sine'){
       const o=audioContext.createOscillator(),g=audioContext.createGain();o.type=type;o.frequency.setValueAtTime(f1,t+delay);o.frequency.exponentialRampToValueAtTime(f2,t+delay+duration);
       g.gain.setValueAtTime(.0001,t+delay);g.gain.exponentialRampToValueAtTime(level,t+delay+.006);g.gain.exponentialRampToValueAtTime(.0001,t+delay+duration);
-      o.connect(g);g.connect(audioGain);o.start(t+delay);o.stop(t+delay+duration+.02);o.onended=()=>{o.disconnect();g.disconnect();};
+      o.connect(g);g.connect(effectOutput);o.start(t+delay);o.stop(t+delay+duration+.02);o.onended=()=>{o.disconnect();g.disconnect();};
     }
     function rub(delay,duration,frequency,level){
       const b=audioContext.createBuffer(1,Math.ceil(audioContext.sampleRate*duration),audioContext.sampleRate),d=b.getChannelData(0);
       for(let i=0;i<d.length;i++){const u=i/d.length;d[i]=(Math.random()*2-1)*Math.sin(Math.PI*u)**2;}
-      const src=audioContext.createBufferSource(),f=audioContext.createBiquadFilter(),g=audioContext.createGain();src.buffer=b;f.type='lowpass';f.frequency.value=frequency;g.gain.value=level;src.connect(f);f.connect(g);g.connect(audioGain);src.start(t+delay);src.onended=()=>{src.disconnect();f.disconnect();g.disconnect();};
+      const src=audioContext.createBufferSource(),f=audioContext.createBiquadFilter(),g=audioContext.createGain();src.buffer=b;f.type='lowpass';f.frequency.value=frequency;g.gain.value=level;src.connect(f);f.connect(g);g.connect(effectOutput);src.start(t+delay);src.onended=()=>{src.disconnect();f.disconnect();g.disconnect();};
     }
     const variation=.92+Math.random()*.16;
+    if(kind==='ui-click'){tone(0,.04,300,90,.035);}
+    if(kind==='curtain-slide'){rub(0,.85,1100,.022);rub(.06,.16,3200,.008);}
+    if(kind==='wardrobe-open'){rub(0,.65,700,.025);tone(0,.6,145,105,.009,'triangle');}
+    if(kind==='wardrobe-close'){rub(0,.13,500,.035);tone(0,.14,100,40,.05);}
     if(kind==='handle'){tone(0,.07,950,430,.055,'triangle');tone(.065,.05,380,140,.055);rub(0,.11,2600,.038);}
     if(kind==='door-open'){rub(0,.65,750,.022);tone(.02,.57,190,125,.012,'triangle');}
     if(kind==='door-close'){rub(0,.50,650,.023);tone(.52,.16,115,44,.11);tone(.60,.065,620,210,.04,'triangle');}
@@ -403,8 +493,8 @@
     if(kind==='lid-open'){tone(0,.045,850,220,.048,'triangle');rub(.05,.35,800,.018);}
     if(kind==='lid-close'){rub(0,.25,700,.018);tone(.3,.08,320,65,.055);}
   }
-  function updateSound(){if(!audioContext||!tvHissGain)return;const d=camera.position.distanceTo(V(-.19,1.1,-1.78));const amount=entered&&!playing&&!movingTape?.012/(1+d*d*.9):0;tvHissGain.gain.setTargetAtTime(amount,audioContext.currentTime,.18);}
-  function togglePS1(){ps1Open=!ps1Open;soundEffect(ps1Open?'lid-open':'lid-close');notice(ps1Open?'Дисковод открыт':'Дисковод закрыт');}
+  function updateSound(){if(!audioContext||!tvHissGain)return;foley?.update(camera,hallwayLit,curtainsClosed,soundOn&&!document.hidden);const d=camera.position.distanceTo(V(-.19,1.1,-1.78));const amount=entered&&!playing&&!movingTape?.012/(1+d*d*.9):0;tvHissGain.gain.setTargetAtTime(amount,audioContext.currentTime,.18);}
+  function togglePS1(){ps1Open=!ps1Open;stopFoley('ps1');ps1Closing=!ps1Open;if(ps1Open)soundEffect('lid-open');notice(ps1Open?'Дисковод открыт':'Дисковод закрыт');}
   function setupPS1Lid(parts){
     ps1Lid=group(.119,.086,-1.631);ps1Lid.name='Hinged original PS1 lid';(parts.ps1lid||[]).forEach(o=>ps1Lid.attach(o));
     // The dark underside and disc well sit below the original circular surface.
@@ -443,12 +533,21 @@
     for(const [name,side] of [['wardrobe_left',-1],['wardrobe_right',1]]){
       const leaf=gltf.scene.getObjectByName(name),pivot=new THREE.Group();pivot.position.set(side*.518,0,.306);wardrobe.add(pivot);
       leaf.position.set(-side*.518,0,-.306);pivot.add(leaf);pivot.userData.side=side;wardrobeDoors.push(pivot);
+      const oldPull=leaf.getObjectByName(name+'_5');if(oldPull)oldPull.removeFromParent();
+      const pull=new THREE.Group();pull.name='Attached wardrobe pull';leaf.add(pull);
+      for(const y of [1.34,1.44]){
+        box(.024,.030,.008,side*.05,y,.331,materials.black,pull);
+        rod(V(side*.05,y,.329),V(side*.05,y,.378),.007,materials.black,pull);
+      }
+      rod(V(side*.05,1.333,.378),V(side*.05,1.447,.378),.008,materials.black,pull);
       if(side<0)box(.034,1.60,.018,.518,1.466,.025,materials.wood,pivot);
       interactObject(pivot,'wardrobe','Открыть / закрыть шкаф',toggleWardrobe);
       const bounds={x1:0,x2:0,z1:0,z2:0};colliders.push(bounds);wardrobeDoorColliders.push(bounds);
     }
     // Backing and real shelves remain behind the articulated doors.
     const oak=materials.wood;
+    for(const side of [-1,1])for(const y of [.26,.49])for(const x of [.239,.341])
+      rod(V(side*x,y,.327),V(side*x,y,.372),.007,materials.black,wardrobe);
     for(const y of [.67,1.10,1.53,1.96])box(1.02,.035,.48,0,y,-.01,oak,wardrobe);
     box(.03,1.58,.46,.08,1.46,-.01,oak,wardrobe);
     const cloth=['#334663','#777b69','#874437','#b2aa91','#44404f','#57627b'].map(clothMaterial);
@@ -468,10 +567,11 @@
     }
     updateWardrobe(0);
   }
-  function toggleWardrobe(){wardrobeOpen=!wardrobeOpen;soundEffect(wardrobeOpen?'case-open':'lid-close');notice(wardrobeOpen?'Шкаф открыт':'Шкаф закрыт');}
+  function toggleWardrobe(){wardrobeOpen=!wardrobeOpen;stopFoley('wardrobe');wardrobeClosing=!wardrobeOpen;if(wardrobeOpen)soundEffect('wardrobe-open');notice(wardrobeOpen?'Шкаф открыт':'Шкаф закрыт');}
   function updateWardrobe(dt){
     if(!wardrobe)return;
     wardrobeAngle=reducedMotion?(wardrobeOpen?1.42:0):THREE.MathUtils.damp(wardrobeAngle,wardrobeOpen?1.42:0,5,dt);
+    if(wardrobeClosing&&wardrobeAngle<.015){wardrobeClosing=false;soundEffect('wardrobe-close');}
     wardrobeDoors.forEach((pivot,i)=>{
       pivot.rotation.y=pivot.userData.side*wardrobeAngle;
       // Update the leaf collision volume as it swings into the room.
@@ -479,6 +579,59 @@
       const b=pivot.localToWorld(V(-pivot.userData.side*.505,0,0));
       Object.assign(wardrobeDoorColliders[i],{x1:Math.min(a.x,b.x)-.025,x2:Math.max(a.x,b.x)+.025,z1:Math.min(a.z,b.z)-.025,z2:Math.max(a.z,b.z)+.025});
     });
+  }
+  // Keep the light in the renderer light list: toggling visible changes shader variants.
+  function toggleDeskLamp(){deskLight.intensity=deskLight.intensity>0?0:1.15;clickSound();}
+  function extractComponents(object,select){
+    const source=object.geometry,p=source.attributes.position,indices=source.index?.array||Array.from({length:p.count},(_,i)=>i);
+    const parent=Array.from({length:p.count},(_,i)=>i),weld=new Map(),v=V(0,0,0);
+    const root=i=>{while(parent[i]!==i){parent[i]=parent[parent[i]];i=parent[i];}return i;};
+    for(let i=0;i<p.count;i++){v.fromBufferAttribute(p,i);const key=[v.x,v.y,v.z].map(n=>Math.round(n*1e5)).join(',');if(weld.has(key))parent[i]=root(weld.get(key));else weld.set(key,i);}
+    for(let i=0;i<indices.length;i+=3){const r=root(indices[i]);parent[root(indices[i+1])]=r;parent[root(indices[i+2])]=r;}
+    const components=new Map();object.updateWorldMatrix(true,false);
+    for(let i=0;i<p.count;i++){const r=root(i);if(!components.has(r))components.set(r,new THREE.Box3());components.get(r).expandByPoint(v.fromBufferAttribute(p,i).applyMatrix4(object.matrixWorld));}
+    const selected=new Set([...components].filter(([,bounds])=>select(bounds)).map(([r])=>r)),take=[],keep=[];
+    for(let i=0;i<indices.length;i+=3)(selected.has(root(indices[i]))?take:keep).push(indices[i],indices[i+1],indices[i+2]);
+    if(!take.length)return null;
+    const piece=object.clone();piece.geometry=source.clone();piece.geometry.setIndex(take);piece.geometry.computeBoundingBox();piece.geometry.computeBoundingSphere();
+    object.geometry=source.clone();object.geometry.setIndex(keep);object.geometry.computeBoundingBox();object.geometry.computeBoundingSphere();
+    object.parent.add(piece);return piece;
+  }
+  function sealDoorway(parts){
+    // The GLB packed the jamb and moving leaf together. Keep the jamb stationary.
+    for(const object of parts.door||[]){
+      if(!/Doorway_header/.test(object.name))continue;
+      const frame=extractComponents(object,b=>b.max.y>2.16||b.max.x< -1.94||b.min.x> -1.07);
+      if(frame){frame.name='Stationary doorway frame';scene.attach(frame);}
+    }
+    const stop=mat('#735038',{map:textures.wood,roughness:1});
+    for(const x of [-1.971,-1.079])box(.052,2.16,.07,x,1.08,2.796,stop).name='Solid overlapping door jamb';
+    box(.94,.065,.07,-1.525,2.135,2.796,stop).name='Solid door header stop';
+    box(.94,.035,.12,-1.525,.0175,2.81,stop).name='Solid door threshold';
+  }
+  function repairBicycleGrips(parts){
+    const bar=(parts.room||[]).find(o=>/room__Aligned[ _]drive[ _]chain/.test(o.name));
+    if(bar){const levers=extractComponents(bar,b=>b.min.y>.93&&b.max.y<.961&&b.min.z>.65&&b.max.z<.74);if(levers){levers.removeFromParent();levers.geometry.dispose();}}
+    // The imported sleeves cross the bent bar. Replace only those triangles,
+    // retaining the tyres, crank and other geometry sharing their materials.
+    for(const o of parts.room||[]){
+      if(!/room__(Crank_arm|Derailleur_jockey_wheel)$/.test(o.name))continue;
+      const g=o.geometry.clone(),p=g.attributes.position,indices=g.index?.array||Array.from({length:p.count},(_,i)=>i),keep=[];
+      const v=V(0,0,0),center=V(0,0,0);
+      for(let i=0;i<indices.length;i+=3){
+        center.set(0,0,0);for(let j=0;j<3;j++)center.add(v.fromBufferAttribute(p,indices[i+j]).applyMatrix4(o.matrixWorld));center.multiplyScalar(1/3);
+        const grip=center.y>.95&&center.y<1.02&&center.z>.64&&center.z<.73&&((center.x>-2.19&&center.x<-2.05)||(center.x>-1.63&&center.x<-1.49));
+        if(!grip)keep.push(indices[i],indices[i+1],indices[i+2]);
+      }
+      g.setIndex(keep);g.computeBoundingBox();g.computeBoundingSphere();o.geometry=g;
+    }
+    const rubber=mat('#171a20',{roughness:.95}),rib=mat('#343639',{roughness:.9});
+    for(const side of [-1,1]){
+      const inner=V(-1.84+side*.20,.974,.650),outer=V(-1.84+side*.29,.981,.685),axis=outer.clone().sub(inner).normalize();
+      const a=inner.clone().addScaledVector(axis,.004),b=outer.clone().addScaledVector(axis,.012),mid=a.clone().add(b).multiplyScalar(.5);
+      const sleeve=cyl(.022,.022,a.distanceTo(b),mid.x,mid.y,mid.z,rubber,scene,12);sleeve.quaternion.setFromUnitVectors(V(0,1,0),axis);sleeve.name='Aligned bicycle grip';
+      for(let i=1;i<=7;i++){const ring=mesh(new THREE.TorusGeometry(.022,.0015,4,12),rib);ring.position.copy(a).lerp(b,i/8);ring.quaternion.setFromUnitVectors(V(0,0,1),axis);}
+    }
   }
   function bicycleFixes(){
     const metal=materials.metal,black=materials.black;
@@ -489,7 +642,7 @@
     // Reflector housing is attached to the stem with an L bracket.
     rod(V(-1.84,.920,.626),V(-1.84,.920,.585),.007,black);
     rod(V(-1.84,.920,.585),V(-1.84,.932,.585),.007,black);
-    for(const x of [-1.61,-2.07])rod(V(x,.963,.661),V(x,.947,.668),.009,black);
+
     const bell=group(-1.69,.981,.639);bell.name='Pressable handlebar bell';
     const collar=mesh(new THREE.TorusGeometry(.017,.005,6,16),black,bell);collar.rotation.y=Math.PI/2;collar.position.y=-.022;
     rod(V(0,-.024,0),V(0,.015,0),.009,metal,bell);
@@ -515,11 +668,16 @@
   let freeLook=false, curtainsClosed=false, curtainProgress=0, curtainPanels=[], watering=null, wateringCan=null, wateredUntil=0;
   const cloudObjects=[],autumnDetails=[];
   function requestLook(){
-    if(coarse||dialogOpen())return;freeLook=true;
-    const result=$('room').requestPointerLock?.();if(result?.catch)result.catch(()=>{});
+    if(dialogOpen())return;
+    // A narrow window or a touchscreen laptop can still have a real mouse.
+    if(!window.matchMedia('(any-pointer: fine)').matches)return;
+    try{const result=$('room').requestPointerLock?.();if(result?.catch)result.catch(()=>{freeLook=false;});}catch(_){freeLook=false;}
   }
-  function releaseLook(){freeLook=false;keys.clear();if(document.pointerLockElement)document.exitPointerLock();}
-  document.addEventListener('pointerlockchange',()=>{if(!document.pointerLockElement)freeLook=false;document.body.classList.toggle('mouse-locked',document.pointerLockElement===$('room'));});
+  function releaseLook(){freeLook=false;keys.clear();resetLookDrag();if(document.pointerLockElement)document.exitPointerLock();}
+  document.addEventListener('pointerlockchange',()=>{
+    freeLook=document.pointerLockElement===$('room');resetLookDrag();
+    document.body.classList.toggle('mouse-locked',freeLook);
+  });
   // Reuse the old TV furniture at the scale and location of the approved floor plan.
   function restoreTVZone(){
     const before=new Set(scene.children),count=colliders.length;
@@ -544,10 +702,10 @@
   }
   function restoredPrints(){
     const iron=group(-2.187,1.90,-1.32,Math.PI/2);box(.45,.66,.009,0,0,0,mat('#b9ac92'),iron);printPanel(.44,.65,'iron-giant-poster.jpg',[[.046,.015],[.93,.015],[.914,.975],[.055,.975]],iron).position.z=.006;
-    const mgs=group(-2.185,1.90,-1.91,Math.PI/2);box(.45,.45,.009,0,0,0,materials.black,mgs);printPanel(.44,.44,'metal-gear-solid-cover.jpg',null,mgs).position.z=.006;
+    const map=group(-2.185,1.90,-1.91,Math.PI/2);map.name='Map above bed';box(.57,.357,.012,0,0,0,materials.darkWood,map);printPanel(.55,.339,'bed-map.png',null,map).position.z=.008;
     const poster=group(2.188,1.94,-.46,-Math.PI/2);box(.61,.61,.018,0,0,0,materials.darkWood,poster);printPanel(.59,.59,'courage-poster.png',null,poster).position.z=.012;
-    const game=(x,z,key,uv)=>{const g=group(x,.821,z);box(.205,.025,.205,0,0,0,materials.black,g);const p=printPanel(.196,.196,key,uv,g);p.rotation.x=-Math.PI/2;p.position.y=.014;};
-    game(1.83,-1.10,'metal-gear-solid-cover.jpg');game(1.83,-.83,'warcraft-iii-reference.jpg',[[.041,.322],[.407,.274],[.456,.61],[.137,.649]]);
+    const game=(x,z,key,uv)=>{const g=group(x,.011,z);g.name='Small game case by PS1';box(.14,.018,.14,0,0,0,materials.black,g);const p=printPanel(.134,.134,key,uv,g);p.rotation.x=-Math.PI/2;p.position.y=.010;};
+    game(.43,-1.40,'metal-gear-solid-cover.jpg');game(.59,-1.31,'warcraft-iii-reference.jpg',[[.041,.322],[.407,.274],[.456,.61],[.137,.649]]);
     const collection=group(1.98,0,.66,-Math.PI/2);
     function item(x,y,w,h,key,title,uv){const g=new THREE.Group();collection.add(g);g.position.set(x,y,.018);box(w,h,.055,0,0,0,materials.black,g);printPanel(w-.008,h-.008,key,uv,g).position.z=.031;interactObject(g,'collection',title,()=>showObject(title,key));}
     item(.17,.82,.31,.20,'tmnt-reference.jpg','Teenage Mutant Ninja Turtles',[[.018,.307],[.988,.295],[.988,.763],[.02,.763]]);
@@ -557,6 +715,30 @@
     item(.015,1.985,.17,.295,'guyver-reference.jpg','Guyver');
 
   }
+  const framedPhotos=[];
+  let photoInspector=null;
+  function inspectPhoto(frame){
+    releaseLook();closeDialogs();if(!photoInspector)photoInspector=new window.PhotoInspector($('photo-dialog'));
+    $('photo-heading').textContent=txt('Фотография','Photograph');
+    $('photo-dialog').querySelector('[data-close]').textContent=txt('Поставить на место · Esc','Put back · Esc');
+    $('photo-dialog').querySelector('[data-photo-reset]').textContent=txt('Лицевая сторона','Front view');
+    $('photo-hint').textContent=txt('Потяните мышью или пальцем · Стрелки — поворот','Drag with mouse or finger · Arrow keys to rotate');
+    photoInspector.open(frame);
+  }
+  function createFramedPhotos(){
+    for(const [key,z] of [['photo-winter.png',-1.10],['photo-family.png',-.77]]){
+      const image=artTextures[key].image,h=.18,w=h*image.width/image.height,edge=.012;
+      const frame=group(1.88,.821+(h+edge*2)/2,z,-Math.PI/2);frame.name=key;
+      box(w+edge*2,h+edge*2,.016,0,0,0,materials.darkWood,frame);
+      box(w+.004,h+.004,.003,0,0,.010,mat('#e8dcc5'),frame);
+      printPanel(w,h,key,null,frame).position.z=.013;
+      for(const x of [-1,1])box(edge,h+edge*2,.020,x*(w+edge)/2,0,.01,materials.wood,frame);
+      for(const y of [-1,1])box(w,edge,.020,0,y*(h+edge)/2,.01,materials.wood,frame);
+      const stand=box(.055,.12,.009,0,-.042,-.039,materials.darkWood,frame);stand.rotation.x=-.55;
+      frame.userData.inspectRadius=Math.hypot(w+edge*2,h+edge*2)/2;
+      interactObject(frame,'photo',txt('Взять фотографию','Pick up photograph'),()=>inspectPhoto(frame));framedPhotos.push(frame);
+    }
+  }
   function createCurtains(){
     const fabric=mat('#8b8da0',{map:textures.curtain,side:THREE.DoubleSide});
     rod(V(.12,2.76,-2.265),V(2.19,2.76,-2.265),.018,materials.darkWood);
@@ -564,7 +746,7 @@
     // The fabric itself is clickable; no floating handle on the curtain.
     updateRoomDetails(0,0);
   }
-  function toggleCurtains(){curtainsClosed=!curtainsClosed;clickSound();notice(curtainsClosed?'Шторы закрываются':'Шторы открываются');}
+  function toggleCurtains(){curtainsClosed=!curtainsClosed;soundEffect('curtain-slide');notice(curtainsClosed?'Шторы закрываются':'Шторы открываются');}
   function personalDetails(){
     // A wire paper bin next to the writing desk, clear of the chair and walking route.
     const bin=group(1.59,0,-1.67),wire=mat('#404344',{metalness:.5,roughness:.55});
@@ -603,6 +785,10 @@
   function domesticHallway(){
     const cream=mat('#ede6d4'),wood=mat('#aa845a');
     for(const x of [-3.35,.30])box(.03,.14,2.2,x,.07,4.1,cream);
+    for(const [a,b] of [[-3.35,-2.0725],[-.9775,.30]]){
+      box(b-a,.14,.045,(a+b)/2,.07,3.09,cream);
+      box(b-a,.018,.055,(a+b)/2,.139,3.09,cream);
+    }
     const lamp=new THREE.PointLight('#fff0d1',1.7,5,2);lamp.position.set(-1.525,2.40,4.2);scene.add(lamp);lamp.userData.onIntensity=1.7;hallLights.push(lamp);
     cyl(.20,.20,.035,-1.525,2.68,4.25,cream);hallSurfaces.push(cyl(.15,.15,.02,-1.525,2.65,4.25,mat('#fff1d8',{emissive:'#ffe0ad',emissiveIntensity:.5})));
     // Small domestic switch and plain white door casing visible from the corridor.
@@ -634,14 +820,22 @@
     const parts={};model.updateMatrixWorld(true);
     model.traverse(o=>{if(o.isMesh){if(o.name.includes('22-extended-ground'))o.position.y-=.07;const role=o.userData.role||o.name.split('__')[0];(parts[role]??=[]).push(o);o.castShadow=!['exterior','ps1'].includes(role);o.receiveShadow=true;const list=Array.isArray(o.material)?o.material:[o.material];list.forEach(m=>{if(m.map){m.map.anisotropy=Math.min(4,renderer.capabilities.getMaxAnisotropy());}if(/Window clear glass/.test(m.name)){m.transparent=true;m.opacity=.08;m.depthWrite=false;}if(/Translucent storage/.test(m.name)){m.transparent=true;m.opacity=.24;m.depthWrite=false;}});}});
     function bind(role,label,action){for(const o of parts[role]||[])interactObject(o,role,label,action);}
+    sealDoorway(parts);
     door=new THREE.Group();door.position.set(-1.975,0,2.85);scene.add(door);(parts.door||[]).forEach(o=>door.attach(o));door.position.y=.025;
+    const handle=(parts.door||[]).find(o=>/brass[ _]backplate/i.test(o.name));
+    if(handle){
+      handle.position.y+=.05;handle.position.z-=.009;
+      const inside=handle.clone();inside.name='Door brass handle / room side';
+      inside.position.z=-handle.position.z;inside.scale.z*=-1;door.add(inside);
+      for(const side of [-1,1])rod(V(.8,1.075,side*.03),V(.8,1.075,side*.055),.007,handle.material,door);
+    }
     ps1Model=new THREE.Group();scene.add(ps1Model);(parts.ps1||[]).forEach(o=>ps1Model.attach(o));
     bind('notebook','Тетрадь',()=>openNotebook('about'));bind('music','Магнитофон',()=>openDialog('music-dialog'));
     bind('vcr','Выбрать кассету',()=>openDialog('tapes-dialog'));bind('tapes','Выбрать VHS',()=>openDialog('tapes-dialog'));
     bind('tv','Смотреть телевизор',()=>playing?openScreen():openDialog('tapes-dialog'));
     setupPS1Lid(parts);
     function point(color,intensity,distance,pos,shadow=false){const l=new THREE.PointLight(color,intensity,distance,2);l.position.copy(pos);l.castShadow=shadow&&!coarse;if(l.castShadow){l.shadow.mapSize.set(1024,1024);l.shadow.bias=-.001;l.shadow.normalBias=.025;}scene.add(l);return l;}
-    const deskLight=point('#ffd28a',1.15,3,V(1.84,1.12,-.13));bind('deskLamp','Настольная лампа',()=>{deskLight.visible=!deskLight.visible;clickSound();});
+    deskLight=point('#ffd28a',1.15,3,V(1.84,1.12,-.13));bind('deskLamp','Настольная лампа',toggleDeskLamp);
     point('#386dff',1.6,6,V(1.13,1.9,-2.15));point('#e5bd8c',.55,6,V(-.3,2.48,.30));
     const outside=new THREE.DirectionalLight('#628aff',1.2);outside.position.set(2,6,-8);scene.add(outside);
     const threshold=flat(.85,.045,-1.525,.02,2.885,new THREE.MeshBasicMaterial({color:'#ffd18a',side:THREE.DoubleSide}));threshold.castShadow=false;hallSurfaces.push(threshold);
@@ -649,9 +843,9 @@
     seasonalGroup=new THREE.Group();scene.add(seasonalGroup);(parts.exterior||[]).forEach(o=>seasonalGroup.attach(o));
     collision(-2.2,-1.06,-2.40,-.10);collision(-2.2,-1.55,.14,1.90);collision(1.37,2.2,-1.5,.16);collision(.94,1.43,-.95,-.28);collision(1.68,2.2,.12,1.24);collision(-.10,.34,-1.67,-.96);
     // Link the three physical VHS cover meshes to the same projects as the menu.
-    const artNames=['iron-giant-poster.jpg','metal-gear-solid-cover.jpg','warcraft-iii-reference.jpg','spider-man-reference.jpg','tmnt-reference.jpg','guyver-reference.jpg','max-payne-reference.jpg','painkiller-reference.jpg','courage-poster.png'];
+    const artNames=['iron-giant-poster.jpg','metal-gear-solid-cover.jpg','warcraft-iii-reference.jpg','spider-man-reference.jpg','tmnt-reference.jpg','guyver-reference.jpg','max-payne-reference.jpg','painkiller-reference.jpg','courage-poster.png','photo-winter.png','photo-family.png','bed-map.png'];
     const loader=new THREE.TextureLoader();await Promise.all(artNames.map(async name=>{const t=await loader.loadAsync('./assets/'+name);t.encoding=THREE.sRGBEncoding;t.anisotropy=4;artTextures[name]=t;}));
-    restoreTVZone();restoredPrints();createCurtains();personalDetails();autumnExterior();domesticHallway();await loadNewFurniture();bicycleFixes();batchStaticDetails(model);
+    restoreTVZone();restoredPrints();createFramedPhotos();createCurtains();personalDetails();autumnExterior();domesticHallway();await loadNewFurniture();repairBicycleGrips(parts);bicycleFixes();batchStaticDetails(model);
     const grain=$('analog-grain'),gc=grain.getContext('2d');grain.width=192;grain.height=128;
     const noise=gc.createImageData(192,128);let noiseFrame=0;
     function updateGrain(){if(!document.hidden&&!document.body.classList.contains('tv-view')){for(let i=0;i<noise.data.length;i+=4){const v=Math.random()*255;noise.data[i]=v;noise.data[i+1]=v;noise.data[i+2]=v;noise.data[i+3]=255;}gc.putImageData(noise,0,0);}noiseFrame=setTimeout(updateGrain,reducedMotion?1000000:100);}
@@ -676,13 +870,13 @@
       // Feature-detected WebMCP shares the same public interaction handlers.
       if(document.modelContext?.registerTool){const lifecycle=new AbortController();const register=tool=>{try{Promise.resolve(document.modelContext.registerTool(tool,{signal:lifecycle.signal})).catch(()=>{});}catch(_){}};
         register({name:'room_status',description:'Read room state, imported PS1, season, language and playback status.',inputSchema:{type:'object',properties:{},additionalProperties:false},annotations:{readOnlyHint:true},execute:()=>{const {canMove,...state}=window.__roomDiagnostics();return state;}});
-        register({name:'view_room_object',description:'Move to a room object using the same camera navigation as the room buttons.',inputSchema:{type:'object',properties:{object:{type:'string',enum:['room','tv','desk','ps1','bike','wardrobe','curtains','shelves']}},required:['object'],additionalProperties:false},annotations:{readOnlyHint:false},execute:input=>{if(!['room','tv','desk','ps1','bike','wardrobe','curtains','shelves'].includes(input?.object))throw new Error('Unknown room object');goTo(input.object);return{view:input.object};}});
-        register({name:'use_room_object',description:'Use the disc lid, curtains, wardrobe doors or bicycle bell through the same handlers as clicking.',inputSchema:{type:'object',properties:{object:{type:'string',enum:['ps1','curtains','wardrobe','bell']}},required:['object'],additionalProperties:false},annotations:{readOnlyHint:false},execute:input=>{if(!entered||entering||transition||dialogOpen())throw new Error('Enter the room and finish moving first');if(input?.object==='ps1')togglePS1();else if(input?.object==='curtains')toggleCurtains();else if(input?.object==='wardrobe')toggleWardrobe();else if(input?.object==='bell')ringBell();else throw new Error('Unknown room object');return{ps1Open,curtainsClosed,wardrobeOpen,bellRings};}});
+        register({name:'view_room_object',description:'Move to a room object using the same camera navigation as the room buttons.',inputSchema:{type:'object',properties:{object:{type:'string',enum:['room','tv','desk','ps1','bike','wardrobe','curtains','shelves','doorInside','doorEdge','bikeHandlebars','bedMap']}},required:['object'],additionalProperties:false},annotations:{readOnlyHint:false},execute:input=>{if(!['room','tv','desk','ps1','bike','wardrobe','curtains','shelves','doorInside','doorEdge','bikeHandlebars','bedMap'].includes(input?.object))throw new Error('Unknown room object');if(entering)throw new Error('Finish entering the room first');goTo(input.object);return{view:input.object};}});
+        register({name:'use_room_object',description:'Use a room object or pick up either framed photograph through the same handlers as clicking.',inputSchema:{type:'object',properties:{object:{type:'string',enum:['ps1','curtains','wardrobe','bell','deskLamp','photoWinter','photoFamily']}},required:['object'],additionalProperties:false},annotations:{readOnlyHint:false},execute:input=>{if(!entered||entering||transition||dialogOpen())throw new Error('Enter the room and finish moving first');if(input?.object==='ps1')togglePS1();else if(input?.object==='curtains')toggleCurtains();else if(input?.object==='wardrobe')toggleWardrobe();else if(input?.object==='bell')ringBell();else if(input?.object==='deskLamp')toggleDeskLamp();else if(input?.object==='photoWinter')inspectPhoto(framedPhotos[0]);else if(input?.object==='photoFamily')inspectPhoto(framedPhotos[1]);else throw new Error('Unknown room object');return{ps1Open,curtainsClosed,wardrobeOpen,bellRings,deskLampOn:deskLight.intensity>0};}});
         register({name:'list_vhs_tapes',description:'List the available demo VHS tapes in the room.',inputSchema:{type:'object',properties:{},additionalProperties:false},annotations:{readOnlyHint:true},execute:()=>({tapes:PROJECTS.map(({id,title,number})=>({id,title,number,demo:true})),playing:playing?.id||null})});
         register({name:'open_vhs_cover',description:'Open a VHS cover for inspection. This does not start playback.',inputSchema:{type:'object',properties:{id:{type:'string',enum:PROJECTS.map(p=>p.id)}},required:['id'],additionalProperties:false},annotations:{readOnlyHint:false},execute:input=>{if(!input||typeof input!=='object'||Object.keys(input).some(k=>k!=='id'))throw new Error('Expected a tape id');const p=PROJECTS.find(p=>p.id===input.id);if(!p)throw new Error('Unknown tape');selectTape(p);return{id:p.id,view:'cover'};}});
         window.addEventListener('pagehide',()=>lifecycle.abort(),{once:true});
       }
-      window.__roomDiagnostics=()=>({three:THREE.REVISION,entered,entering,doorAngle:door.rotation.y,playing:playing?.id||null,curtainsClosed,curtainProgress,watering:!!watering,watered:performance.now()<wateredUntil,mouseLook:document.pointerLockElement===$('room')||freeLook,sceneObjects:scene.children.length,colliders:colliders.length,camera:camera.position.toArray(),frames:lastFrame>0,ps1Loaded:!!ps1Model,ps1Bounds:ps1Model?new THREE.Box3().setFromObject(ps1Model):null,modelError,season:seasonKey,language,music:{wanted:musicWanted,paused:music.paused,track:musicIndex,duration:music.duration,duck:musicDuck},roomModel:'blender-hybrid-v7',wardrobeOpen,wardrobeAngle,wardrobeDoors:wardrobeDoors.length,hallwayLit,hallLightIntensity:hallLights.reduce((n,l)=>n+l.intensity,0),bellRings,ps1Open,ps1Angle,soundOn,soundEvents:[...soundEvents],analog:!document.body.classList.contains('tv-view'),shelfBoards:4,visibleTapeCount:PROJECTS.filter(p=>p.sceneObject?.visible).length,drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,canMove});
+      window.__roomDiagnostics=()=>({three:THREE.REVISION,entered,entering,doorAngle:door.rotation.y,playing:playing?.id||null,curtainsClosed,curtainProgress,watering:!!watering,watered:performance.now()<wateredUntil,mouseLook:document.pointerLockElement===$('room')||dragging,look:{pitch,yaw,dragging,pointer:lookInput.pointerId,locked:document.pointerLockElement===$('room')},sceneObjects:scene.children.length,colliders:colliders.length,camera:camera.position.toArray(),frames:lastFrame>0,ps1Loaded:!!ps1Model,ps1Bounds:ps1Model?new THREE.Box3().setFromObject(ps1Model):null,modelError,season:seasonKey,language,music:{wanted:musicWanted,paused:music.paused,track:musicIndex,duration:music.duration,duck:musicDuck},roomModel:'blender-hybrid-v7',wardrobeOpen,wardrobeAngle,wardrobeDoors:wardrobeDoors.length,hallwayLit,hallLightIntensity:hallLights.reduce((n,l)=>n+l.intensity,0),bellRings,ps1Open,ps1Angle,soundOn,audio:foley?.diagnostics(),effectsVolume,musicMuted:music.muted,videoMuted:$('project-video').muted,soundEvents:[...soundEvents],analog:!document.body.classList.contains('tv-view'),shelfBoards:4,visibleTapeCount:PROJECTS.filter(p=>p.sceneObject?.visible).length,deskLampIntensity:deskLight?.intensity,shaderPrograms:renderer.info.programs.length,drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,canMove});
     }catch(error){console.error('Room initialization:',error);renderer=null;$('loading').hidden=true;$('fallback').hidden=false;$('entrance').hidden=true;$('quick-nav').hidden=true;notice('Можно открыть концепт комнаты через меню.');}
   }
   // Current concept: physical objects, local music and the supplied GLB.
@@ -772,7 +966,7 @@
     interactObject(radio,'music','Магнитофон',()=>openDialog('music-dialog'));
     const lamp=group(3.02,1.0,-.13);cyl(.095,.10,.025,0,0,0,materials.black,lamp);rod(V(0,0,0),V(-.10,.34,0),.013,materials.black,lamp);const shade=cyl(.055,.105,.13,-.11,.32,0,mat('#272a2b',{emissive:'#9c7432',emissiveIntensity:.20}),lamp);shade.rotation.z=-.55;
     const light=new THREE.PointLight('#ffd39a',.85,3.1,2);light.position.set(2.88,1.31,-.15);scene.add(light);
-    interactObject(lamp,'lamp','Настольная лампа',()=>{light.visible=!light.visible;clickSound();});
+    interactObject(lamp,'lamp','Настольная лампа',()=>{light.intensity=light.intensity>0?0:.85;clickSound();});
     collectible(g,-.21,1.22,.34,.43,'metal-gear-solid-cover.jpg','Metal Gear Solid').position.z=-.35;
     collectible(g,.19,1.22,.35,.43,'warcraft-iii-reference.jpg','Warcraft III',[[.038,.332],[.418,.265],[.453,.613],[.139,.648]]).position.z=-.35;
   }
@@ -788,7 +982,34 @@
     syncSeasonLabel();
   }
   function syncSeasonLabel(){const names={winter:['ЗИМА','WINTER'],spring:['ВЕСНА','SPRING'],summer:['ЛЕТО','SUMMER'],autumn:['ОСЕНЬ','AUTUMN']};$('season-label').textContent=(names[seasonKey]||names[calendarSeason()])[language==='ru'?0:1];}
-  function openNotebook(page){activePage=page;renderNotebook();openDialog('notebook-dialog');}
+  let diaryAnimation=null,diaryTurnToken=0,diaryPose=null;
+  const diaryPages=['about','process','contact'];
+  function cancelDiaryTurn(){diaryTurnToken++;diaryAnimation?.cancel();diaryAnimation=null;document.querySelector('.diary-book').classList.remove('turning');}
+  function openNotebook(page){cancelDiaryTurn();if(renderer&&!$('notebook-dialog').open){diaryPose={position:camera.position.clone(),quaternion:camera.quaternion.clone(),pitch,yaw};transition=null;keys.clear();touchKeys.clear();camera.position.copy(getView('desk').pos);setLook(getView('desk').look);}activePage=page;renderNotebook();openDialog('notebook-dialog');}
+  async function turnDiary(page){
+    if(page===activePage||!diaryPages.includes(page))return;
+    cancelDiaryTurn();const token=diaryTurnToken,forward=diaryPages.indexOf(page)>diaryPages.indexOf(activePage);
+    if(reducedMotion){activePage=page;renderNotebook();return;}
+    const sheet=document.querySelector('.page-turn-sheet'),book=document.querySelector('.diary-book');
+    sheet.replaceChildren();const clone=document.querySelector(forward?'.notebook-right':'.notebook-left').cloneNode(true);
+    clone.removeAttribute('id');clone.querySelectorAll('[id]').forEach(e=>e.removeAttribute('id'));clone.querySelectorAll('a,button').forEach(e=>e.tabIndex=-1);sheet.append(clone);
+    book.classList.add('turning');sheet.style.left=forward?'50%':'0';sheet.style.transformOrigin=forward?'left center':'right center';
+    const angle=forward?-90:90;
+    try{
+      diaryAnimation=sheet.animate([{transform:'rotateY(0deg)',filter:'brightness(1)'},{transform:`rotateY(${angle}deg)`,filter:'brightness(.75)'}],{duration:280,easing:'ease-in',fill:'forwards'});
+      await diaryAnimation.finished;if(token!==diaryTurnToken)return;
+      activePage=page;renderNotebook();sheet.replaceChildren();
+      const incoming=document.querySelector(forward?'.notebook-left':'.notebook-right').cloneNode(true);incoming.querySelectorAll('[id]').forEach(e=>e.removeAttribute('id'));incoming.querySelectorAll('a,button').forEach(e=>e.tabIndex=-1);sheet.append(incoming);
+      sheet.style.left=forward?'0':'50%';sheet.style.transformOrigin=forward?'right center':'left center';
+      diaryAnimation.cancel();diaryAnimation=sheet.animate([{transform:`rotateY(${-angle}deg)`,filter:'brightness(.75)'},{transform:'rotateY(0deg)',filter:'brightness(1)'}],{duration:340,easing:'ease-out',fill:'forwards'});
+      await diaryAnimation.finished;if(token===diaryTurnToken)cancelDiaryTurn();
+    }catch(e){if(e.name!=='AbortError')console.error('Diary animation:',e);}
+  }
+  $('diary-prev').onclick=()=>turnDiary(diaryPages[diaryPages.indexOf(activePage)-1]);
+  $('diary-next').onclick=()=>turnDiary(diaryPages[diaryPages.indexOf(activePage)+1]);
+  $('diary-language').onclick=()=>$('language').click();
+  $('notebook-dialog').addEventListener('keydown',e=>{if(e.target.closest('a,input,select'))return;if(e.key==='ArrowRight'||e.key==='ArrowLeft'){e.preventDefault();turnDiary(diaryPages[diaryPages.indexOf(activePage)+(e.key==='ArrowRight'?1:-1)]);}});
+
   function renderNotebook(){
     const labels={about:txt('Обо мне','About me'),process:txt('Процесс','Process'),contact:txt('Контакты','Contact')};
     $('notebook-heading').textContent=labels[activePage];
@@ -805,33 +1026,51 @@
       add(supplied||txt('Эта страница пока не заполнена.','This page has not been written yet.'));
       if(activePage==='about'&&!supplied)add(txt('А пока можно осмотреть комнату, выбрать музыку и заглянуть на полки.','Meanwhile, explore the room, choose some music and look around the shelves.'));
     }
-    document.querySelector('.paper-number').textContent=String(['about','process','contact'].indexOf(activePage)+1).padStart(2,'0')+' / 03';
+    const index=diaryPages.indexOf(activePage);
+    document.querySelector('.paper-number').textContent=String(index*2+1).padStart(2,'0');$('diary-page-right').textContent=String(index*2+2).padStart(2,'0');
+    $('diary-prev').disabled=index===0;$('diary-next').disabled=index===diaryPages.length-1;
+    document.querySelector('.diary-book').dataset.section=activePage;
+    $('diary-position').textContent=labels[activePage]+' · '+(index+1)+' / 3';
+    $('diary-language').textContent=language==='ru'?'EN':'RU';
+    document.querySelector('.notebook-close').textContent=txt('Esc — закрыть тетрадь','Esc — close notebook');
+    document.querySelector('.sketch-tv').hidden=activePage==='contact';
     document.querySelector('.paper-kicker').textContent=txt('ЛИЧНЫЕ ЗАМЕТКИ','PERSONAL NOTES');
   }
-  document.querySelectorAll('[data-page]').forEach(b=>b.onclick=()=>{activePage=b.dataset.page;renderNotebook();});
+  document.querySelectorAll('[data-page]').forEach(b=>b.onclick=()=>turnDiary(b.dataset.page));
   $('notebook-menu').onclick=()=>openNotebook('about');$('music-menu').onclick=()=>openDialog('music-dialog');
   const stamp=seconds=>{if(!Number.isFinite(seconds))return '00:00';return String(Math.floor(seconds/60)).padStart(2,'0')+':'+String(Math.floor(seconds%60)).padStart(2,'0');};
   function musicUI(){
-    const track=content.tracks[musicIndex];$('track-title').textContent=track.title;$('track-author').textContent=track.author+' · '+track.license;$('music-source').href=track.source;
+    const track=content.tracks[musicIndex];$('track-title').textContent=track.title;$('track-author').textContent=track.author+' · '+track.license;$('music-source').href=track.source;$('music-source').textContent=txt('Источник записи / ','Recording source / ')+track.license;
     $('music-play').textContent=musicWanted?'Ⅱ':'▶';$('music-play').setAttribute('aria-label',musicWanted?txt('Пауза','Pause'):txt('Воспроизвести музыку','Play music'));
-    $('music-status').textContent=musicWanted?(playing?txt('ТВ / ПАУЗА','TV / PAUSE'):(musicMuted?txt('БЕЗ ЗВУКА','MUTE'):txt('ИГРАЕТ','PLAY'))):txt('СТОП','STOP');
+    $('music-status').textContent=musicWanted?(playing?txt('ТВ / ТИШЕ','TV / DUCKED'):(musicMuted?txt('БЕЗ ЗВУКА','MUTE'):txt('ИГРАЕТ','PLAY'))):txt('СТОП','STOP');
     document.querySelectorAll('[data-track]').forEach(b=>b.classList.toggle('active',Number(b.dataset.track)===musicIndex));
   }
-  function selectMusic(index,play=musicWanted){musicIndex=(index+content.tracks.length)%content.tracks.length;music.src=content.tracks[musicIndex].src;musicWanted=play;$('music-error').hidden=true;if(play)playMusic();musicUI();}
+  let musicChange=0, musicChanging=false, musicFade=1;
+  function selectMusic(index,play=musicWanted){
+    const generation=++musicChange;musicIndex=(index+content.tracks.length)%content.tracks.length;musicWanted=play;musicChanging=true;
+    $('music-error').hidden=true;musicUI();
+    const change=()=>{if(generation!==musicChange)return;music.src=content.tracks[musicIndex].src;musicFade=0;musicChanging=false;if(musicWanted)playMusic();musicUI();};
+    if(musicContext&&!music.paused)setTimeout(change,220);else change();
+  }
   async function playMusic(){
+    const generation=musicChange;
     try{
       if(!soundOn)await roomSoundToggle();musicMuted=false;
       if(!musicContext){
         const AC=window.AudioContext||window.webkitAudioContext;
-        if(AC){musicContext=new AC();musicNode=musicContext.createMediaElementSource(music);musicPanner=musicContext.createPanner();musicPanner.panningModel='HRTF';musicPanner.distanceModel='inverse';musicPanner.refDistance=1.7;musicPanner.rolloffFactor=.6;musicPanner.setPosition(...musicPosition.toArray());musicBus=musicContext.createGain();musicNode.connect(musicPanner);musicPanner.connect(musicBus);musicBus.connect(musicContext.destination);}
+        if(AC){musicContext=new AC();musicNode=musicContext.createMediaElementSource(music);musicPanner=musicContext.createPanner();musicPanner.panningModel='HRTF';musicPanner.distanceModel='inverse';musicPanner.refDistance=1.7;musicPanner.rolloffFactor=.6;musicPanner.setPosition(...musicPosition.toArray());musicBus=musicContext.createGain();const eq=musicContext.createBiquadFilter();eq.type='lowpass';eq.frequency.value=6200;musicNode.connect(eq);eq.connect(musicPanner);musicPanner.connect(musicBus);musicBus.connect(musicContext.destination);}
       }
       if(musicContext)await musicContext.resume();musicWanted=true;
-      if(!playing&&!document.hidden)await music.play();musicUI();
-    }catch(e){musicWanted=false;$('music-error').textContent=txt('Не удалось включить запись. Попробуйте ещё раз или выберите другой трек.','Could not play this recording. Try again or select another track.');$('music-error').hidden=false;musicUI();}
+      if(!document.hidden)await music.play();musicUI();
+    }catch(e){if(generation!==musicChange)return;musicWanted=false;$('music-error').textContent=txt('Не удалось включить запись. Попробуйте ещё раз или выберите другой трек.','Could not play this recording. Try again or select another track.');$('music-error').hidden=false;musicUI();}
   }
   $('music-play').onclick=()=>{if(musicWanted){musicWanted=false;music.pause();musicUI();}else playMusic();};
   $('music-prev').onclick=()=>selectMusic(musicIndex-1);$('music-next').onclick=()=>selectMusic(musicIndex+1);
-  $('music-volume').oninput=()=>{music.volume=Number($('music-volume').value);};music.volume=.35;
+  function saveAudioSettings(){try{localStorage.setItem('after-midnight-audio',JSON.stringify({music:music.volume,effects:effectsVolume}));}catch(_){}}
+  try{const saved=JSON.parse(localStorage.getItem('after-midnight-audio')||'null');if(saved){if(Number.isFinite(saved.music))$('music-volume').value=clamp(saved.music,0,1);if(Number.isFinite(saved.effects))effectsVolume=clamp(saved.effects,0,1);}}catch(_){}
+  music.volume=Number($('music-volume').value);$('effects-volume').value=effectsVolume;
+  $('music-volume').oninput=()=>{music.volume=Number($('music-volume').value);saveAudioSettings();};
+  $('effects-volume').oninput=()=>{effectsVolume=Number($('effects-volume').value);applySoundLevels();saveAudioSettings();};
   $('music-seek').oninput=()=>{if(Number.isFinite(music.duration))music.currentTime=music.duration*Number($('music-seek').value)/100;};
   music.addEventListener('timeupdate',()=>{$('music-time').textContent=stamp(music.currentTime);$('music-duration').textContent=stamp(music.duration);$('music-seek').value=Number.isFinite(music.duration)?music.currentTime/music.duration*100:0;});
   music.addEventListener('ended',()=>selectMusic(musicIndex+1,true));
@@ -844,11 +1083,10 @@
     if(!musicContext||!camera)return;
     const listener=musicContext.listener,p=camera.position,forward=camera.getWorldDirection(V());
     listener.setPosition(p.x,p.y,p.z);listener.setOrientation(forward.x,forward.y,forward.z,0,1,0);
-    const target=playing||document.hidden||musicMuted?0:1;musicDuck+=(target-musicDuck)*Math.min(1,dt*5);musicBus.gain.setTargetAtTime(musicDuck,musicContext.currentTime,.05);
-    if(playing&&musicDuck<.01&&!music.paused)music.pause();
-    if(!playing&&musicWanted&&music.paused&&!document.hidden)music.play().catch(()=>{musicWanted=false;musicUI();});
+    musicFade+=((musicChanging?0:1)-musicFade)*Math.min(1,dt*18);const target=document.hidden||!soundOn?0:(playing?.16:1)*musicFade;musicDuck+=(target-musicDuck)*Math.min(1,dt*5);musicBus.gain.setTargetAtTime(musicDuck,musicContext.currentTime,.05);
+    if(!musicChanging&&musicWanted&&music.paused&&!document.hidden)music.play().catch(()=>{musicWanted=false;musicUI();});
   }
-  document.addEventListener('visibilitychange',()=>{if(document.hidden)music.pause();else if(musicWanted&&!playing)music.play().catch(()=>{});});
+  document.addEventListener('visibilitychange',()=>{if(document.hidden)music.pause();else if(musicWanted)music.play().catch(()=>{});});
 
   const languagePairs={
     'ПОСЛЕ':'AFTER','ПОЛУНОЧИ':'MIDNIGHT','Кассеты':'Tapes','Тетрадь':'Notebook','Концепт':'Concept','ПО ТУ СТОРОНУ ДВЕРИ':'ON THE OTHER SIDE','Войти':'Enter','W / щелчок':'W / click','Пропустить вступление':'Skip entrance','Комната':'Room','Телевизор':'Television','Стол':'Desk','ТВ':'TV','На весь экран':'Full screen',
@@ -862,9 +1100,10 @@
     'В этом браузере не удалось включить 3D. Можно рассмотреть концепт комнаты и обложки кассет.':'3D is unavailable in this browser. You can still view the room concept and tape covers.','Посмотреть комнату':'View room','Нажмите воспроизведение на видео.':'Press play on the video.','Видео не удалось загрузить. Проверьте файл проекта.':'The video could not be loaded.','В этом браузере звук недоступен.':'Audio is unavailable in this browser.','Потяните мышью, чтобы осмотреться.':'Drag to look around.',
     'Закрыть':'Close','Управление':'Controls','Включить звук':'Enable sound','Выключить звук':'Mute sound','Извлечь кассету':'Eject tape','Закрыть полноэкранный просмотр':'Close full-screen view','Вход в комнату':'Room entrance','Главное меню':'Main menu','Вернуться к входу':'Return to the door','Перемещение по комнате':'Move around the room','Шаг вперёд':'Step forward','Шаг влево':'Step left','Шаг назад':'Step back','Шаг вправо':'Step right','Интерактивная 3D-комната':'Interactive 3D room','Предыдущий трек':'Previous track','Следующий трек':'Next track','Позиция воспроизведения':'Playback position','Загрузка комнаты':'Loading room','Страницы тетради':'Notebook pages','Полноэкранный просмотр':'Full-screen playback','Ракурс':'View','Движение по комнате':'Move around the room','Свет уже горит…':'The light is already on…','Изображение приостановлено. Восстанавливаю комнату…':'The image is paused. Restoring the room…','Комната снова доступна':'The room is available again','Можно открыть концепт комнаты через меню.':'You can open the room concept from the menu.','Для интерактивной комнаты нужен JavaScript.':'JavaScript is required for the interactive room.','КОЛЛЕКЦИЯ VHS / 01—03':'VHS COLLECTION / 01—03'
   };
-  Object.assign(languagePairs,{'Открыть / закрыть шкаф':'Open / close wardrobe','Шкаф открыт':'Wardrobe open','Шкаф закрыт':'Wardrobe closed','Позвонить в звонок':'Ring the bicycle bell','Дзинь!':'Ding!','Открыть / закрыть дисковод':'Open / close disc lid','Дисковод открыт':'Disc lid open','Дисковод закрыт':'Disc lid closed','мышь — осмотр · Esc — меню':'mouse — look · Esc — menu','Двигать мышью; на телефоне — провести пальцем':'Move the mouse; swipe on touchscreens','Открыть / закрыть шторы':'Open / close curtains','Шторы закрываются':'Closing curtains','Шторы открываются':'Opening curtains','Полить растение':'Water the plant','Растение полито':'Plant watered','Растение уже полито':'The plant has already been watered'});
+  Object.assign(languagePairs,{'Музыка':'Music','Эффекты':'Effects','Авторы музыки и звуков':'Music and sound credits','Громкость эффектов':'Effects volume','Источник записи / CC BY 4.0':'Recording source / CC BY 4.0','Открыть / закрыть шкаф':'Open / close wardrobe','Шкаф открыт':'Wardrobe open','Шкаф закрыт':'Wardrobe closed','Позвонить в звонок':'Ring the bicycle bell','Дзинь!':'Ding!','Открыть / закрыть дисковод':'Open / close disc lid','Дисковод открыт':'Disc lid open','Дисковод закрыт':'Disc lid closed','мышь — осмотр · Esc — меню':'mouse — look · Esc — menu','Двигать мышью; на телефоне — провести пальцем':'Move the mouse; swipe on touchscreens','Без захвата курсора — зажмите и перетащите.':'Without pointer lock, hold and drag.','Открыть / закрыть шторы':'Open / close curtains','Шторы закрываются':'Closing curtains','Шторы открываются':'Opening curtains','Полить растение':'Water the plant','Растение полито':'Plant watered','Растение уже полито':'The plant has already been watered'});
   const reversePairs=Object.fromEntries(Object.entries(languagePairs).map(([ru,en])=>[en,ru]));Object.assign(reversePairs,{Desk:'Стол','Move around the room':'Перемещение по комнате'});
   function translated(value){const key=reversePairs[value]||value;return language==='en'?(languagePairs[key]||value):key;}
+  Object.assign(languagePairs,{"Местная погода и геолокация": "Local weather and location", "Функция готовится. Сейчас местоположение не запрашивается и погодные данные не загружаются. Вид комнаты не меняется.": "This feature is in preparation. Location is not requested and weather is not downloaded. The room stays unchanged.", "После включения и разрешения браузера сайт однократно определит местоположение для погоды за окном. Координаты будут округлены до 0,1° (около 11 км по широте) и переданы Open-Meteo. Этот сервис также увидит ваш IP-адрес.": "After you enable this and grant browser permission, the site will request your location once for the weather outside. Coordinates will be rounded to 0.1° (about 11 km in latitude) and sent to Open-Meteo. That service will also see your IP address.", "Точные координаты не сохраняются приложением. Округлённые координаты используются только для одного запроса; погодные данные остаются в памяти до отключения или закрытия страницы. Cookies, история перемещений и фоновое отслеживание для этой функции не используются.": "The app does not save precise coordinates. Rounded coordinates are used for one request only; weather data stays in memory until you disable the feature or close the page. This feature uses no cookies, movement history or background tracking.", "После запуска функция будет добровольной: можно отказаться, продолжить без неё или отключить в любой момент. Правила внешнего сервиса:": "Once launched, this feature will be optional: decline, continue without it or disable it at any time. External service policy:", "Open-Meteo может хранить журналы запросов с координатами до 90 дней. Отключение удаляет данные только из этой страницы.": "Open-Meteo may retain request logs containing coordinates for up to 90 days. Disabling only clears data from this page.", "Разрешаю разовый запрос местоположения и передачу округлённых координат Open-Meteo для получения погоды.": "I agree to a one-time location request and sharing rounded coordinates with Open-Meteo to get weather.", "Подключить погоду": "Connect weather", "Отключить и очистить данные страницы": "Disable and clear page data", "Сбор данных выключен.": "Data collection is off.", "Погода получена. Эффекты в комнате пока не подключены.": "Weather received. Room effects are not connected yet.", "Можно подключить местную погоду. Визуальные эффекты пока не подключены.": "Local weather can be connected. Visual effects are not connected yet.", "Запрашиваем разовое местоположение…": "Requesting location once…", "Получаем погоду…": "Loading weather…", "Доступ к местоположению отклонён. Комната работает без него.": "Location access denied. The room works without it.", "Время ожидания истекло. Можно повторить запрос.": "Request timed out. You can try again.", "Местоположение недоступно. Для этой функции нужен HTTPS и поддержка браузера.": "Location is unavailable. HTTPS and browser support are required.", "Не удалось получить погоду. Попробуйте позже.": "Could not load weather. Please try later.", "Извлечь кассету": "Eject tape"});
   function applyLanguage(){
     document.documentElement.lang=language;document.title=txt('После полуночи — комната','After midnight — a room');
     const walker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT);
@@ -873,7 +1112,7 @@
     $('room').setAttribute('aria-label',txt('3D-комната. WASD — движение, мышь — осмотр, Esc — меню.','3D room. WASD to move, mouse to look, Esc for menus.'));
     PROJECTS.forEach((p,i)=>{p.title=translated(p.title);p.subtitle=translated(p.subtitle);p.description=translated(p.description);makeCover(p,i);if(p.coverTexture){p.coverTexture.image=p.coverCanvas;p.coverTexture.needsUpdate=true;}});
     populateTapes();$('language').textContent=language==='ru'?'EN':'RU';$('language').setAttribute('aria-label',txt('Switch to English','Переключить на русский'));
-    if(playing){$('playing-title').textContent=playing.title;$('full-title').textContent=playing.title;}
+    if(playing)$('full-title').textContent=playing.title;
     if($('tape-dialog').open){$('tape-heading').textContent=selected.title;$('tape-description').textContent=selected.description;$('tape-number').textContent=txt('КАССЕТА ','TAPE ')+selected.number+' / VHS';}
     document.querySelectorAll('.dialog-language').forEach(b=>{b.textContent=language==='ru'?'EN':'RU';b.setAttribute('aria-label',txt('Switch to English','Переключить на русский'));});
     document.querySelector('meta[name=description]').content=txt('После полуночи — личная интерактивная комната. Работы на ТВ, заметки в тетради, музыка на кассете.','After midnight — a personal interactive room. Projects on TV, notes in a notebook, music on tape.');
@@ -881,9 +1120,16 @@
   }
   $('language').onclick=()=>{language=language==='ru'?'en':'ru';try{localStorage.setItem('midnight-language',language);}catch(_){}applyLanguage();};
 
-  document.querySelectorAll('dialog').forEach(d=>{const b=document.createElement('button');b.className='dialog-language';b.textContent='EN';b.onclick=()=>$('language').click();d.prepend(b);});
+  document.querySelectorAll('dialog').forEach(d=>{
+    if(['notebook-dialog','photo-dialog'].includes(d.id))return;
+    const tools=document.createElement('div');tools.className='dialog-tools';
+    const b=document.createElement('button');b.className='dialog-language';b.type='button';b.textContent='EN';b.onclick=()=>$('language').click();
+    tools.append(b,d.querySelector('[data-close]'));
+    const heading=d.querySelector('.panel-heading'),tabs=d.querySelector('.notebook-tabs');
+    if(heading)heading.append(tools);
+    else if(tabs){const top=document.createElement('div');top.className='notebook-topbar';top.append(tabs,tools);d.prepend(top);}
+    else d.prepend(tools);
+  });
   applyLanguage();
   init();
 })();
-
-

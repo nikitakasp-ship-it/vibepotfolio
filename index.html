@@ -3,17 +3,23 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="application-version" content="0.0.3">
   <meta name="theme-color" content="#101218">
   <meta name="description" content="После полуночи — интерактивная комната моушн-дизайнера. Исследуйте пространство, выбирайте VHS и включайте телевизор.">
   <title>После полуночи — комната</title>
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='5' fill='%23101218'/%3E%3Crect x='4' y='6' width='24' height='19' rx='3' fill='%23b9b7af'/%3E%3Crect x='7' y='9' width='17' height='12' rx='2' fill='%234c6ded'/%3E%3Cpath d='M13 11l7 4-7 4z' fill='%23dce7ff'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="./style.css">
   <link rel="stylesheet" href="./refinement.css">
-  <link rel="stylesheet" href="./analog.css">
+  <link rel="stylesheet" href="./analog.css?v=0.0.3">
+  <link rel="stylesheet" href="./interfaces.css?v=0.0.3">
   <script src="./vendor/three.min.js" defer></script>
   <script src="./vendor/GLTFLoader.js" defer></script>
-  <script src="./content.js" defer></script>
-  <script src="./room.js" defer></script>
+  <script src="./content.js?v=0.0.3" defer></script>
+  <script src="./audio-engine.js?v=0.0.3" defer></script>
+  <script src="./look-input.js?v=0.0.3" defer></script>
+  <script src="./photo-inspector.js?v=0.0.3" defer></script>
+  <script src="./weather-context.js?v=0.0.3" defer></script>
+  <script src="./room.js?v=0.0.3" defer></script>
 </head>
 <body>
   <main id="experience" aria-label="Интерактивная 3D-комната">
@@ -48,15 +54,14 @@
       <button data-view="room" class="active">Комната</button><button data-view="tv">Телевизор</button><button data-view="desk">Стол</button>
     </nav>
     <div id="mobile-move" class="mobile-move" aria-label="Движение" hidden><button data-move="forward" aria-label="Шаг вперёд">↑</button><button data-move="left" aria-label="Шаг влево">←</button><button data-move="back" aria-label="Шаг назад">↓</button><button data-move="right" aria-label="Шаг вправо">→</button></div>
-    <div id="playing-bar" class="playing-bar" hidden><span class="play-icon" aria-hidden="true">▶</span><span id="playing-title">Движение</span><span class="demo-chip">ДЕМО</span><button id="pause" aria-label="Пауза">Ⅱ</button><button id="fullscreen">На весь экран</button><button id="eject" aria-label="Извлечь кассету">⏏</button></div>
     <div id="notice" role="status" class="notice" hidden></div>
     <section id="fallback" class="fallback" hidden><h1>После полуночи</h1><p>В этом браузере не удалось включить 3D. Можно рассмотреть концепт комнаты и обложки кассет.</p><button id="fallback-concept" class="primary">Посмотреть комнату</button></section>
   </main>
 
   <dialog id="tapes-dialog" class="panel tapes-panel" aria-labelledby="tapes-heading">
-    <div class="panel-heading"><div><p class="eyebrow">VHS COLLECTION / 01—03</p><h1 id="tapes-heading">На полке</h1></div><button class="close" data-close aria-label="Закрыть">×</button></div>
-    <p class="panel-intro">Выберите кассету. Дальше — к телевизору.</p>
-    <div id="tape-grid" class="tape-grid"></div>
+    <div class="panel-heading"><div><p class="eyebrow">AFTER MIDNIGHT / VHS</p><h1 id="tapes-heading">Видеотека</h1></div><button class="close" data-close aria-label="Закрыть">×</button></div>
+    <div class="library-toolbar"><input id="tape-search" type="search" aria-label="Поиск по работам" placeholder="Поиск по работам"><select id="tape-filter" aria-label="Категория"><option value="all">Все работы</option><option value="demo">Демо</option><option value="video">Видео</option></select><select id="tape-sort" aria-label="Сортировка"><option value="number">По номеру</option><option value="title">По названию</option></select></div>
+    <div class="library-layout"><div><div id="tape-grid" class="tape-grid"></div><p id="tape-empty" role="status" hidden></p><div class="library-pagination"><button id="tape-prev" aria-label="Предыдущая страница">◀</button><span id="tape-count" aria-live="polite"></span><button id="tape-next" aria-label="Следующая страница">▶</button></div></div><aside class="library-preview" aria-label="Выбранная работа"><canvas id="library-still" width="640" height="360" aria-label="Предпросмотр работы"></canvas><p id="library-number" class="eyebrow"></p><h2 id="library-title"></h2><p id="library-description"></p><button id="library-play" class="primary">Смотреть ▶</button><button id="library-details" class="text-button">Обложка и описание</button></aside></div>
     <p class="prototype-note">Демонстрационные кассеты для проверки просмотра. Авторские видео будут добавлены отдельно.</p>
   </dialog>
 
@@ -74,17 +79,32 @@
 
   <dialog id="help-dialog" class="panel help-panel" aria-labelledby="help-heading">
     <div class="panel-heading"><div><p class="eyebrow">ОСВАИВАЙТЕСЬ</p><h1 id="help-heading">Осмотритесь.</h1></div><button class="close" data-close aria-label="Закрыть">×</button></div>
-    <dl class="control-list"><div><dt><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></dt><dd>Ходить по комнате</dd></div><div><dt>Мышь / касание</dt><dd>Двигать мышью; на телефоне — провести пальцем</dd></div><div><dt><kbd>E</kbd> / нажатие</dt><dd>Взаимодействовать с предметом</dd></div><div><dt><kbd>F</kbd></dt><dd>Свободный обзор мышью</dd></div><div><dt><kbd>Esc</kbd></dt><dd>Освободить мышь / закрыть окно</dd></div></dl>
+    <dl class="control-list"><div><dt><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></dt><dd>Ходить по комнате</dd></div><div><dt>Мышь / касание</dt><dd>Двигать мышью; на телефоне — провести пальцем<br><span>Без захвата курсора — зажмите и перетащите.</span></dd></div><div><dt><kbd>E</kbd> / нажатие</dt><dd>Взаимодействовать с предметом</dd></div><div><dt><kbd>F</kbd></dt><dd>Свободный обзор мышью</dd></div><div><dt><kbd>Esc</kbd></dt><dd>Освободить мышь / закрыть окно</dd></div></dl>
+    <details class="weather-settings"><summary>Местная погода и геолокация</summary>
+      <p id="weather-stage">Функция готовится. Сейчас местоположение не запрашивается и погодные данные не загружаются. Вид комнаты не меняется.</p>
+      <p>После включения и разрешения браузера сайт однократно определит местоположение для погоды за окном. Координаты будут округлены до 0,1° (около 11 км по широте) и переданы Open-Meteo. Этот сервис также увидит ваш IP-адрес.</p>
+      <p>Точные координаты не сохраняются приложением. Округлённые координаты используются только для одного запроса; погодные данные остаются в памяти до отключения или закрытия страницы. Cookies, история перемещений и фоновое отслеживание для этой функции не используются.</p>
+      <p>После запуска функция будет добровольной: можно отказаться, продолжить без неё или отключить в любой момент. Правила внешнего сервиса: <a href="https://open-meteo.com/en/terms" target="_blank" rel="noopener noreferrer">Open-Meteo / Privacy</a>.</p>
+      <p>Open-Meteo может хранить журналы запросов с координатами до 90 дней. Отключение удаляет данные только из этой страницы.</p>
+      <label><input id="weather-consent" type="checkbox" disabled><span>Разрешаю разовый запрос местоположения и передачу округлённых координат Open-Meteo для получения погоды.</span></label>
+      <div class="weather-actions"><button id="weather-enable" disabled>Подключить погоду</button><button id="weather-disable" hidden>Отключить и очистить данные страницы</button></div><p id="weather-status" role="status">Сбор данных выключен.</p>
+    </details>
     <p>Кнопки внизу перенесут к телевизору и столу. Кассеты всегда доступны через меню сверху.</p><p>Звук включается только по вашему желанию.</p><details class="asset-credits"><summary>Материалы</summary><p>Playstation 1 with Crash Bandicoot Disc — <a href="https://sketchfab.com/Sheyk940" target="_blank" rel="noopener noreferrer">Juan Galindo</a>, <a href="https://sketchfab.com/3d-models/playstation-1-with-crash-bandicoot-disc-93dbf6c499d84ae2ae2c7b07aa537a11" target="_blank" rel="noopener noreferrer">Sketchfab</a>, <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer">CC BY 4.0</a>. <span>Оптимизирована для сайта.</span></p><p>MindStream — DST · Searching — yd. <a href="https://creativecommons.org/publicdomain/zero/1.0/" target="_blank" rel="noopener noreferrer">CC0</a>.</p></details>
   </dialog>
 
-  <dialog id="screen-dialog" class="screen-dialog" aria-label="Полноэкранный просмотр"><button class="close screen-close" data-close aria-label="Закрыть полноэкранный просмотр">×</button><canvas id="full-screen"></canvas><video id="project-video" controls playsinline hidden></video><div class="full-caption"><span id="full-title">Движение</span><span class="demo-chip" id="full-demo">ДЕМО</span><button id="full-pause" class="text-button">Пауза</button></div></dialog>
+  <dialog id="screen-dialog" class="screen-dialog" aria-label="Полноэкранный просмотр"><button class="close screen-close" data-close aria-label="Закрыть полноэкранный просмотр">×</button><canvas id="full-screen"></canvas><video id="project-video" controls playsinline hidden></video><div class="full-caption"><span id="full-title">Движение</span><span class="demo-chip" id="full-demo">ДЕМО</span><button id="full-pause" class="text-button">Пауза</button><button id="full-eject" class="text-button">Извлечь кассету</button></div></dialog>
   <dialog id="notebook-dialog" class="panel notebook-panel" aria-labelledby="notebook-heading">
-    <button class="close notebook-close" data-close aria-label="Закрыть">×</button>
-    <nav class="notebook-tabs" aria-label="Страницы тетради"><button data-page="about" class="active">Обо мне</button><button data-page="process">Процесс</button><button data-page="contact">Контакты</button></nav>
-    <div class="notebook-spread"><div class="notebook-left"><p class="paper-kicker">ЛИЧНЫЕ ЗАМЕТКИ</p><h1 id="notebook-heading">Обо мне</h1><p id="notebook-lead"></p><span class="paper-number">01 / 03</span></div><div class="notebook-right"><div id="notebook-body"></div><div class="paper-footer">После полуночи <span>↗</span></div></div></div>
+    <div class="diary-book" data-section="about">
+      <div class="diary-leaf leaf-about"><button data-page="about" class="paper-tab active">Обо мне</button></div>
+      <div class="diary-leaf leaf-process"><button data-page="process" class="paper-tab">Процесс</button></div>
+      <div class="diary-leaf leaf-contact"><button data-page="contact" class="paper-tab">Контакты</button></div>
+      <div class="notebook-spread"><div class="notebook-left"><p class="paper-kicker">ЛИЧНЫЕ ЗАМЕТКИ</p><h1 id="notebook-heading" tabindex="-1">Обо мне</h1><p id="notebook-lead"></p><img class="diary-sketch sketch-lamp" src="./assets/diary-lamp.png" alt="Карандашный набросок настольной лампы"><span class="paper-number">01</span></div><div class="notebook-right"><div id="notebook-body"></div><img class="diary-sketch sketch-tv" src="./assets/diary-tv.png" alt="Набросок телевизора и раскадровка"><div class="paper-footer"><span id="diary-page-right">02</span></div></div></div>
+      <div class="page-turn-sheet" aria-hidden="true"></div>
+      <button id="diary-prev" class="page-corner prev" aria-label="Предыдущий разворот">›</button><button id="diary-next" class="page-corner next" aria-label="Следующий разворот">›</button>
+    </div><div class="diary-utilities"><span id="diary-position" aria-live="polite"></span><button id="diary-language" type="button">EN</button><button class="notebook-close" data-close>Esc — закрыть тетрадь</button></div>
   </dialog>
-  <dialog id="music-dialog" class="panel music-panel" aria-labelledby="music-heading"><div class="panel-heading"><div><p class="eyebrow" id="music-eyebrow">СТЕРЕО / КАССЕТА A</p><h1 id="music-heading">Магнитофон</h1></div><button class="close" data-close aria-label="Закрыть">×</button></div><div class="music-display"><span id="music-status">STOP</span><h2 id="track-title"></h2><p id="track-author"></p><div class="music-progress"><span id="music-time">00:00</span><input id="music-seek" type="range" min="0" max="100" step="0.1" value="0" aria-label="Позиция воспроизведения"><span id="music-duration">00:00</span></div></div><div class="transport"><button id="music-prev" aria-label="Предыдущий трек">⏮</button><button id="music-play" aria-label="Воспроизвести музыку">▶</button><button id="music-next" aria-label="Следующий трек">⏭</button><label for="music-volume" id="volume-label">Громкость</label><input id="music-volume" type="range" min="0" max="1" step="0.01" value="0.35" aria-label="Громкость"></div><div id="music-tracks" class="music-tracks"></div><p class="music-credit"><a id="music-source" target="_blank" rel="noopener noreferrer">Источник записи / CC0</a></p><p id="music-error" role="status" hidden></p></dialog>
+  <dialog id="music-dialog" class="panel music-panel" aria-labelledby="music-heading"><div class="panel-heading"><div><p class="eyebrow" id="music-eyebrow">СТЕРЕО / КАССЕТА A</p><h1 id="music-heading">Магнитофон</h1></div><button class="close" data-close aria-label="Закрыть">×</button></div><div class="music-display"><span id="music-status">STOP</span><h2 id="track-title"></h2><p id="track-author"></p><div class="music-progress"><span id="music-time">00:00</span><input id="music-seek" type="range" min="0" max="100" step="0.1" value="0" aria-label="Позиция воспроизведения"><span id="music-duration">00:00</span></div></div><div class="transport"><button id="music-prev" aria-label="Предыдущий трек">⏮</button><button id="music-play" aria-label="Воспроизвести музыку">▶</button><button id="music-next" aria-label="Следующий трек">⏭</button></div><div class="music-mixer"><label for="music-volume" id="volume-label">Музыка</label><input id="music-volume" type="range" min="0" max="1" step="0.01" value="0.35" aria-label="Громкость"><label for="effects-volume">Эффекты</label><input id="effects-volume" type="range" min="0" max="1" step="0.01" value="0.65" aria-label="Громкость эффектов"></div><div id="music-tracks" class="music-tracks"></div><p class="music-credit"><a id="music-source" target="_blank" rel="noopener noreferrer">Источник записи / CC0</a></p><p class="music-credit"><a href="./audio-credits.html" target="_blank" rel="noopener">Авторы музыки и звуков</a></p><p id="music-error" role="status" hidden></p></dialog>
+  <dialog id="photo-dialog" class="photo-inspection" aria-labelledby="photo-heading"><div class="photo-toolbar"><h2 id="photo-heading">Фотография</h2><button data-close>Поставить на место · Esc</button></div><canvas id="photo-canvas" tabindex="0" aria-label="Фотография в рамке. Перетаскивайте для вращения или используйте стрелки."></canvas><div class="photo-footer"><span id="photo-hint">Потяните мышью или пальцем, чтобы повернуть</span><button data-photo-reset>Лицевая сторона</button></div></dialog>
   <dialog id="object-dialog" class="panel object-panel" aria-labelledby="object-heading"><div class="panel-heading"><div><p class="eyebrow">КОЛЛЕКЦИЯ</p><h1 id="object-heading"></h1></div><button class="close" data-close aria-label="Закрыть">×</button></div><img id="object-image" alt="" hidden><p id="object-description" class="panel-intro"></p></dialog>
   <noscript><div class="fallback"><h1>После полуночи</h1><p>Для интерактивной комнаты нужен JavaScript.</p><img src="./assets/concept-room.png" alt="Концепт комнаты"></div></noscript>
 </body>

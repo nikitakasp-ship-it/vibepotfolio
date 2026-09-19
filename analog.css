@@ -2,13 +2,45 @@
 .scanlines{opacity:.55;background:repeating-linear-gradient(0deg,transparent 0 2px,#07061026 2px 3px)}
 #analog-grain{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;opacity:.075;mix-blend-mode:soft-light;image-rendering:pixelated}
 #room{filter:saturate(.87) contrast(1.04) sepia(.07)}
-.dialog-language{font:14px Arial,sans-serif;border:1px solid currentColor;padding:7px 10px;position:absolute;top:16px;right:63px;z-index:4;background:#151921;color:#ece7dc}
-.notebook-panel .dialog-language{background:#e0d3b7;color:#33433f;top:14px;right:60px}
-.notebook-tabs{padding-right:130px}
+
+
+
 .notebook-right p{white-space:pre-line}
-@media(max-width:700px){.notebook-tabs{padding:55px 8px 0}.notebook-panel .dialog-language{right:49px;top:8px}.nav{gap:10px}.header{gap:8px}.wordmark{font-size:12px}.nav>button{font-size:14px}}
+@media(max-width:700px){.nav{gap:10px}.header{gap:8px}.wordmark{font-size:12px}.nav>button{font-size:14px}}
 
 /* Playback has the same analog treatment, including the modal top layer. */
 .screen-dialog canvas,.screen-dialog video{filter:saturate(.87) contrast(1.04) sepia(.07)}
 .screen-dialog::after{content:"";position:absolute;inset:0;pointer-events:none;z-index:2;background:repeating-linear-gradient(0deg,transparent 0 2px,#07061022 2px 3px),radial-gradient(ellipse at center,transparent 35%,#06091788 100%);opacity:.55}
 .full-caption{z-index:3}
+
+/* One aligned action group in every dialog; no independent corner offsets. */
+.dialog-tools{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex:0 0 auto;position:relative;z-index:4}
+.dialog-tools>.close,.dialog-tools>.dialog-language{position:static;inset:auto;margin:0;width:44px;height:44px;min-width:44px;display:grid;place-items:center;padding:0;border:1px solid var(--line);background:#171d20;color:var(--ink);line-height:1}
+.dialog-tools>.dialog-language{font:14px Arial,sans-serif}
+.dialog-tools>.close{font:26px/1 Arial,sans-serif}
+.dialog-tools>button:hover{background:#293234;color:#fff}
+.panel-heading{align-items:flex-start;gap:20px}
+.panel-heading>div:first-child{min-width:0}
+.panel-heading h1{overflow-wrap:anywhere}
+.notebook-panel{transform:none;overflow:auto}
+.notebook-topbar{display:flex;align-items:flex-start;gap:12px;padding:12px 12px 0;background:#263a43}
+.notebook-topbar .notebook-tabs{padding:0;flex:1;min-width:0;flex-wrap:wrap;gap:4px}
+.notebook-topbar .notebook-tabs button{min-height:44px}
+.notebook-topbar .dialog-tools>button{background:#e0d3b7;color:#33433f;border-color:#a69f89}
+.tape-detail>.dialog-tools{grid-column:1/-1;justify-self:end;margin-bottom:-24px}
+.screen-dialog>.dialog-tools{position:absolute;top:max(16px,env(safe-area-inset-top));right:max(16px,env(safe-area-inset-right))}
+@media(max-width:540px){
+  .panel-heading{flex-wrap:wrap;gap:16px}
+  .panel-heading>.dialog-tools{margin-left:auto}
+  .panel-heading>div:first-child{flex:1 1 140px}
+  .panel h1{font-size:30px}
+  .notebook-topbar{flex-wrap:wrap;padding:10px 8px 0;gap:8px}
+  .notebook-topbar .dialog-tools{margin-left:auto;order:-1}
+  .notebook-topbar .notebook-tabs{flex-basis:100%}
+  .notebook-topbar .notebook-tabs button{flex:1;padding:10px 8px}
+  .tape-detail[open]{padding-top:20px}
+  .tape-detail>.dialog-tools{margin:0 0 24px}
+}
+
+.music-mixer{display:grid;grid-template-columns:90px minmax(0,1fr);align-items:center;gap:18px 16px;margin:0 0 28px;font-size:14px;color:var(--muted)}
+.music-mixer input{width:100%;min-width:0;margin:0;accent-color:var(--accent)}
