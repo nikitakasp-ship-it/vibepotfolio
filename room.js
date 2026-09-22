@@ -12,7 +12,6 @@
   const PROJECTS = [
     {id:'movement', number:'01', title:'Движение', subtitle:'Ритм и форма', color:'#d75343', description:'Красная лента, петли и непрерывный ритм. Демонстрационный этюд для просмотра через VHS.', video:null},
     {id:'space', number:'02', title:'Пространство', subtitle:'Свет и перспектива', color:'#afa0e0', description:'Свет в конце коридора. Демонстрационный этюд о глубине и медленном движении.', video:null},
-    {id:'texture', number:'03', title:'Текстуры', subtitle:'Волны и отражения', color:'#67b9e6', description:'Вода, блики и аналоговый шум. Демонстрационный этюд для синего экрана после полуночи.', video:null}
   ];
   const catalog=window.PORTFOLIO_CATALOG||{projects:[],categories:{}};
   const localCopy=value=>typeof value==='string'?value:(value?.[language]||value?.ru||value?.en||'');
@@ -84,7 +83,7 @@
     project.cover=project.poster||c.toDataURL('image/png');project.coverCanvas=c;
   }
   PROJECTS.forEach(makeCover);
-  let catalogPage=0;
+  let catalogPage=0, librarySection='all', libraryCategory='all';
   const catalogPageSize=8;
   function previewTape(project){
     selected=project;
@@ -96,39 +95,44 @@
     $('library-play').disabled=!renderer;
     document.querySelectorAll('.tape-card').forEach(b=>{const active=b.dataset.project===project.id;b.classList.toggle('active',active);b.setAttribute('aria-pressed',active);});
   }
-  function populateTapes(){
-    const query=$('tape-search').value.trim().toLocaleLowerCase(),filter=$('tape-filter').value;
-    const sub=$('tape-subcategory'),previous=sub.value;
-    sub.replaceChildren(new Option(txt('Все категории','All categories'),'all'));
-    for(const section of ['AI','Motion']) if(filter==='all'||filter===section){
-      const choices={...(catalog.categories[section]||{})};
-      for(const p of catalog.projects)if(p.section===section)choices[p.category]=[p.categoryLabel.ru,p.categoryLabel.en];
-      for(const [key,labels] of Object.entries(choices))sub.add(new Option(section+' / '+txt(...labels),section+'/'+key));
-    }
-    if([...sub.options].some(option=>option.value===previous))sub.value=previous;
-    sub.disabled=filter==='demo';sub.setAttribute('aria-label',txt('Категория работы','Project category'));
-    let items=PROJECTS.filter(p=>(filter==='all'?(catalog.projects.length?!!p.video:!p.video):filter==='demo'?!p.video:p.section===filter)&&(filter==='demo'||sub.value==='all'||p.section+'/'+p.category===sub.value)&&[p.title,p.subtitle,p.number,p.description].join(' ').toLocaleLowerCase().includes(query));
-    const badge=$('tapes-menu').querySelector('sup');if(badge)badge.textContent=String(catalog.projects.length||3).padStart(2,'0');
-    document.querySelector('#tapes-dialog .prototype-note').textContent=items.some(p=>!p.video)?txt('Демонстрационные кассеты для проверки просмотра.','Demo tapes for testing playback.'):txt('Выберите работу и вставьте кассету в видеомагнитофон.','Choose a project and insert the tape into the VCR.');
-    if($('tape-sort').value==='title')items.sort((a,b)=>a.title.localeCompare(b.title,language));
-    catalogPage=Math.min(catalogPage,Math.max(0,Math.ceil(items.length/catalogPageSize)-1));
-    const start=catalogPage*catalogPageSize,visible=items.slice(start,start+catalogPageSize);
-    $('tape-grid').replaceChildren();
-    visible.forEach(p=>{const b=document.createElement('button');b.className='tape-card';b.dataset.project=p.id;b.setAttribute('aria-label',txt('Выбрать кассету ','Select tape ')+p.number+': '+p.title);
-      const cover=document.createElement('div');cover.className='tape-cover';const img=document.createElement('img');img.src=p.cover;img.alt='';cover.append(img);
-      const meta=document.createElement('div');meta.className='tape-meta';const title=document.createElement('strong');title.textContent=p.title;const number=document.createElement('span');number.textContent=p.number+' / '+(p.video?'VIDEO':'DEMO');meta.append(title,number);b.append(cover,meta);b.onclick=()=>previewTape(p);$('tape-grid').append(b);
-    });
-    $('tape-empty').hidden=!!items.length;$('tape-empty').textContent=txt('Ничего не найдено. Измените поиск или категорию.','No matches. Change the search or category.');
-    $('tape-count').textContent=items.length?`${start+1}–${Math.min(start+catalogPageSize,items.length)} / ${items.length}`:'0 / 0';
-    $('tape-prev').disabled=catalogPage===0;$('tape-next').disabled=start+catalogPageSize>=items.length;
-    document.querySelector('.library-preview').hidden=!items.length;
-    if(items.length)previewTape(visible.find(p=>p===selected)||visible[0]);
-    $('tape-search').placeholder=txt('Поиск по работам','Search projects');
-    $('tapes-heading').textContent=txt('Видеотека','Video library');$('library-play').textContent=txt('Смотреть ▶','Watch ▶');$('library-details').textContent=txt('Обложка и описание','Cover and details');
-    ['Все работы','AI','Motion','Демо'].forEach((v,i)=>$('tape-filter').options[i].text=language==='ru'?v:['All projects','AI','Motion','Demos'][i]);
-    $('tape-sort').options[0].text=txt('По номеру','By number');$('tape-sort').options[1].text=txt('По названию','By title');
+  const projectCategories=section=>{
+    const result={...(catalog.categories[section]||{})};
+    for(const project of catalog.projects)if(project.section===section)result[project.category]=[project.categoryLabel.ru,project.categoryLabel.en];
+    return result;
+  };
+  function folderCard(id,title,subtitle,color,count,onClick){
+    const button=document.createElement('button');button.className='tape-card folder-card';button.dataset.project=id;button.setAttribute('aria-label',title+(count?' · '+count:''));
+    const cover=document.createElement('div');cover.className='tape-cover folder-cover';const graphic=document.createElement('div');graphic.className='folder-graphic';graphic.style.setProperty('--folder-color',color);graphic.setAttribute('aria-hidden','true');
+    const label=document.createElement('span');label.textContent=title;graphic.append(label);cover.append(graphic);
+    const meta=document.createElement('div');meta.className='tape-meta';const name=document.createElement('strong');name.textContent=title;const detail=document.createElement('span');detail.textContent=count?subtitle+' / '+count:subtitle;meta.append(name,detail);button.append(cover,meta);button.onclick=onClick;return button;
   }
-  for(const id of ['tape-search','tape-filter','tape-subcategory','tape-sort'])$(id).addEventListener(id==='tape-search'?'input':'change',()=>{if(id==='tape-filter')$('tape-subcategory').value='all';catalogPage=0;populateTapes();});
+  function populateTapes(){
+    const query=$('tape-search').value.trim().toLocaleLowerCase();const matches=value=>value.toLocaleLowerCase().includes(query);
+    let items=[],folders=[];$('library-back').hidden=librarySection==='all';$('library-back').parentElement.classList.toggle('has-back',librarySection!=='all');
+    $('library-back').textContent=libraryCategory!=='all'?txt('← Раздел '+librarySection,'← '+librarySection):txt('← Все разделы','← All sections');
+    $('tapes-heading').textContent=librarySection==='all'?txt('Видеотека','Video library'):librarySection;
+    if(librarySection==='all'){
+      items=PROJECTS.filter(p=>!p.video&&matches([p.title,p.subtitle,p.number].join(' ')));
+      for(const [section,color] of [['AI','#afa0e0'],['Motion','#67b9e6']])if(matches(section))folders.push(folderCard('folder-'+section,section,txt('Раздел','SECTION'),color,catalog.projects.filter(p=>p.section===section).length,()=>{librarySection=section;libraryCategory='all';catalogPage=0;populateTapes();}));
+    }else if(libraryCategory==='all'){
+      for(const [key,labels] of Object.entries(projectCategories(librarySection))){const label=Array.isArray(labels)?labels[language==='ru'?0:1]:labels[language]||labels.ru||labels.en||key;if(!matches([label,librarySection,key].join(' ')))continue;const count=catalog.projects.filter(p=>p.section===librarySection&&p.category===key).length;folders.push(folderCard('folder-'+librarySection+'-'+key,label,librarySection,librarySection==='AI'?'#afa0e0':'#67b9e6',count,()=>{libraryCategory=key;catalogPage=0;populateTapes();}));}
+    }else items=PROJECTS.filter(p=>p.video&&p.section===librarySection&&p.category===libraryCategory&&matches([p.title,p.subtitle,p.number,p.description].join(' ')));
+    if($('tape-sort').value==='title')items.sort((a,b)=>a.title.localeCompare(b.title,language));
+    catalogPage=Math.min(catalogPage,Math.max(0,Math.ceil(items.length/catalogPageSize)-1));const start=catalogPage*catalogPageSize,visible=items.slice(start,start+catalogPageSize);
+    const tapeCards=visible.map(p=>{const button=document.createElement('button');button.className='tape-card';button.dataset.project=p.id;button.setAttribute('aria-label',txt('Выбрать кассету ','Select tape ')+p.number+': '+p.title);const cover=document.createElement('div');cover.className='tape-cover';const img=document.createElement('img');img.src=p.cover;img.alt='';cover.append(img);const meta=document.createElement('div');meta.className='tape-meta';const title=document.createElement('strong');title.textContent=p.title;const number=document.createElement('span');number.textContent=p.number+' / '+(p.video?'VIDEO':'DEMO');meta.append(title,number);button.append(cover,meta);button.onclick=()=>previewTape(p);return button;});
+    $('tape-grid').replaceChildren(...(librarySection==='all'?[...tapeCards,...folders]:[...folders,...tapeCards]));
+    const hasItems=items.length>0;$('tape-empty').hidden=hasItems||folders.length>0;
+    $('tape-empty').textContent=librarySection==='all'?txt('Кассет пока нет.','No tapes yet.'):libraryCategory==='all'?txt('Разделов пока нет.','No categories yet.'):txt('Видео в этом разделе пока нет.','No videos in this category yet.');
+    $('tape-count').textContent=librarySection==='all'?txt(`${folders.length+items.length} позиции`,`${folders.length+items.length} items`):folders.length?txt(`${folders.length} раздела`,`${folders.length} sections`):items.length?`${start+1}–${Math.min(start+catalogPageSize,items.length)} / ${items.length}`:'0 / 0';
+    $('tape-prev').disabled=catalogPage===0;$('tape-next').disabled=start+catalogPageSize>=items.length;
+    const showPreview=hasItems&&(librarySection==='all'||libraryCategory!=='all');document.querySelector('.library-preview').hidden=!showPreview;
+    if(showPreview)previewTape(visible.find(p=>p===selected)||visible[0]);
+    $('tape-search').placeholder=txt('Поиск по работам и разделам','Search projects and sections');$('library-play').textContent=txt('Смотреть ▶','Watch ▶');$('library-details').textContent=txt('Обложка и описание','Cover and details');
+    const badge=$('tapes-menu').querySelector('sup');if(badge)badge.textContent=String(catalog.projects.length||2).padStart(2,'0');
+    document.querySelector('#tapes-dialog .prototype-note').textContent=txt('Выберите AI или Motion, затем откройте категорию и кассету.','Choose AI or Motion, then open a category and a tape.');$('tape-sort').options[0].text=txt('По номеру','By number');$('tape-sort').options[1].text=txt('По названию','By title');
+  }
+  $('library-back').onclick=()=>{if(libraryCategory!=='all')libraryCategory='all';else librarySection='all';catalogPage=0;populateTapes();};
+  for(const id of ['tape-search','tape-sort'])$(id).addEventListener(id==='tape-search'?'input':'change',()=>{catalogPage=0;populateTapes();});
   $('tape-prev').onclick=()=>{catalogPage--;populateTapes();};$('tape-next').onclick=()=>{catalogPage++;populateTapes();};
   $('library-play').onclick=()=>insertTape();$('library-details').onclick=()=>selectTape(selected);
   function selectTape(project){selected=project;document.querySelector('.demo-label').hidden=!!project.video;$('selected-cover').src=project.cover;$('selected-cover').alt=txt('Обложка кассеты: ','Tape cover: ')+project.title;$('tape-heading').textContent=project.title;$('tape-description').textContent=project.description;$('tape-number').textContent=txt('КАССЕТА ','TAPE ')+project.number+' / VHS';$('insert').disabled=!renderer;openDialog('tape-dialog');}
@@ -1119,7 +1123,7 @@
     'На полке':'On the shelf','Выберите кассету. Дальше — к телевизору.':'Choose a tape. Next stop: the television.','Демонстрационные кассеты для проверки просмотра. Авторские видео будут добавлены отдельно.':'Demo tapes to explore playback. Portfolio projects will be added separately.','Демонстрационный этюд':'Demo study','Вставить в видеомагнитофон':'Insert into VCR','Все кассеты':'All tapes','ДЕМО':'DEMO','ПОСЛЕ ПОЛУНОЧИ':'AFTER MIDNIGHT',
     'Одна комната. Два ракурса.':'The room concept','От двери':'From the doorway','У стола':'At the desk','Тёплая лампа, холодный экран, свободный центр комнаты.':'Warm lamps, a cool screen, space to wander.','ОСВАИВАЙТЕСЬ':'MAKE YOURSELF AT HOME','Осмотритесь.':'Look around.','Ходить по комнате':'Walk around','Мышь / касание':'Mouse / touch','Потянуть, чтобы осмотреться':'Drag to look around','Взаимодействовать с предметом':'Interact with an object','Свободный обзор мышью':'Free mouse look','Освободить мышь / закрыть окно':'Release mouse / close','Кнопки внизу перенесут к телевизору и столу. Кассеты всегда доступны через меню сверху.':'Use the buttons below to move to the TV and desk. Tapes are also available in the top menu.','Звук включается только по вашему желанию.':'Sound starts only when you turn it on.',
     'движение':'move','потяните мышью для осмотра':'drag to look around','Проведите пальцем, чтобы осмотреться':'Swipe to look around','СТЕРЕО / КАССЕТА A':'STEREO / SIDE A','Магнитофон':'Tape player','Громкость':'Volume','Материалы':'Credits','Записи':'Recordings','Модель':'Model','Оптимизирована для сайта.':'Optimized for this site.','Источник записи / CC0':'Recording source / CC0','КОЛЛЕКЦИЯ':'COLLECTION','После полуночи':'After midnight','Выбрать кассету':'Choose a tape','Смотреть телевизор':'Watch TV','Включить / выключить лампу':'Toggle lamp','Настольная лампа':'Desk lamp','Взаимодействовать':'Interact','Игровой стол':'Desk','Выбрать VHS':'Choose VHS',
-    'Движение':'Motion','Пространство':'Space','Текстуры':'Textures','Ритм и форма':'Rhythm and form','Свет и перспектива':'Light and perspective','Волны и отражения':'Waves and reflections','Пауза':'Pause','Продолжить':'Resume','Кассета извлечена':'Tape ejected',
+    'Движение':'Movement','Пространство':'Space','Текстуры':'Textures','Ритм и форма':'Rhythm and form','Свет и перспектива':'Light and perspective','Волны и отражения':'Waves and reflections','Пауза':'Pause','Продолжить':'Resume','Кассета извлечена':'Tape ejected',
     'Красная лента, петли и непрерывный ритм. Демонстрационный этюд для просмотра через VHS.':'A red ribbon, loops and continuous rhythm. A demo study for VHS playback.',
     'Свет в конце коридора. Демонстрационный этюд о глубине и медленном движении.':'Light at the end of a corridor. A demo study of depth and slow movement.',
     'Вода, блики и аналоговый шум. Демонстрационный этюд для синего экрана после полуночи.':'Water, reflections and analog noise. A demo study for the blue screen after midnight.',

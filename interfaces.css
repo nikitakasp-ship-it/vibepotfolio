@@ -122,3 +122,13 @@ body.diary-open .header,body.diary-open .footer,body.diary-open .quick-nav,body.
 .library-toolbar{grid-template-columns:minmax(140px,1fr) minmax(100px,.6fr) minmax(160px,1fr) minmax(120px,.7fr)}
 @media(max-width:900px){.library-toolbar{grid-template-columns:1fr 1fr}.library-toolbar input{grid-column:1/-1}}
 @media(max-width:420px){.library-toolbar{grid-template-columns:1fr}.library-toolbar input{grid-column:auto}}
+
+/* VHS library: AI and Motion appear as covers on the first shelf. */
+.library-toolbar{grid-template-columns:minmax(170px,1fr) auto}
+.library-toolbar.has-back{grid-template-columns:auto minmax(170px,1fr) auto}
+.library-back{min-height:44px;padding:8px 14px;border:1px solid #596275;background:#151c29;color:#d1d8e5;cursor:pointer}
+.folder-card .folder-cover{display:flex;align-items:center;justify-content:center;overflow:hidden;background:linear-gradient(145deg,#080c15,#1e263b)}
+.folder-graphic{position:relative;width:74%;height:72%;border:1px solid color-mix(in srgb,var(--folder-color),transparent 35%);background:linear-gradient(145deg,color-mix(in srgb,var(--folder-color),transparent 84%),#0d1424 72%);box-shadow:0 0 32px color-mix(in srgb,var(--folder-color),transparent 76%),inset 0 0 28px #080c1544;display:grid;place-items:center}
+.folder-graphic:before{content:"";position:absolute;top:-13px;left:10px;width:38%;height:14px;border:1px solid color-mix(in srgb,var(--folder-color),transparent 35%);border-bottom:0;background:#11182a}
+.folder-graphic span{font:700 clamp(20px,4vw,34px)/1 Arial,sans-serif;letter-spacing:.08em;color:var(--folder-color);text-shadow:0 0 20px color-mix(in srgb,var(--folder-color),transparent 50%)}
+@media(max-width:700px){.library-toolbar{grid-template-columns:1fr auto}.library-back{grid-column:1/-1;justify-self:start}}
