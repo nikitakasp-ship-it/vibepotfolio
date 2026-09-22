@@ -1011,29 +1011,31 @@
   $('notebook-dialog').addEventListener('keydown',e=>{if(e.target.closest('a,input,select'))return;if(e.key==='ArrowRight'||e.key==='ArrowLeft'){e.preventDefault();turnDiary(diaryPages[diaryPages.indexOf(activePage)+(e.key==='ArrowRight'?1:-1)]);}});
 
   function renderNotebook(){
-    const labels={about:txt('Обо мне','About me'),process:txt('Процесс','Process'),contact:txt('Контакты','Contact')};
-    $('notebook-heading').textContent=labels[activePage];
+    $('notebook-dialog').scrollTop=0;
+    const labels=Object.fromEntries(diaryPages.map(key=>[key,content.diary[key][language].title]));
+    const page=content.diary[activePage][language];
+    $('notebook-heading').textContent=page.title;
     document.querySelectorAll('[data-page]').forEach(b=>{b.classList.toggle('active',b.dataset.page===activePage);b.textContent=labels[b.dataset.page];b.setAttribute('aria-pressed',b.dataset.page===activePage);});
-    const lead={about:(content.name&&typeof content.name==='object'?content.name[language]:content.name)||txt('Моушн-дизайнер.\nКомната, собранная из интересов.','Motion designer.\nA room made of interests.'),process:txt('От первой заметки\nдо последнего кадра.','From the first note\nto the final frame.'),contact:txt('Оставим место\nдля разговора.','A place to start\na conversation.')};
-    $('notebook-lead').textContent=lead[activePage];
-    const body=$('notebook-body');body.replaceChildren();
-    const add=s=>{const p=document.createElement('p');p.textContent=s;body.append(p);};
+    $('notebook-lead').textContent=page.lead;
+    const left=$('notebook-left-body'),body=$('notebook-body');left.replaceChildren();body.replaceChildren();
+    const append=(target,blocks)=>blocks.forEach(block=>{const section=document.createElement('section');if(block.heading){const heading=document.createElement('h2');heading.textContent=block.heading;section.append(heading);}const p=document.createElement('p');p.textContent=block.text;section.append(p);target.append(section);});
+    append(left,page.left);append(body,page.right);
     if(activePage==='contact'){
-      if(!content.contacts.length)add(txt('Контакты появятся здесь чуть позже.','Contact details will be added here soon.'));
-      content.contacts.forEach(contact=>{const a=document.createElement('a');a.textContent=typeof contact.label==='object'?contact.label[language]:contact.label;a.href=contact.url;a.rel='noopener noreferrer';body.append(a);});
-    }else{
-      const supplied=content[activePage]?.[language];
-      add(supplied||txt('Эта страница пока не заполнена.','This page has not been written yet.'));
-      if(activePage==='about'&&!supplied)add(txt('А пока можно осмотреть комнату, выбрать музыку и заглянуть на полки.','Meanwhile, explore the room, choose some music and look around the shelves.'));
+      const links=document.createElement('div');links.className='diary-contact-links';
+      content.contacts.forEach(contact=>{const a=document.createElement('a');a.textContent=contact.label;a.href=contact.url;if(contact.url.startsWith('https:')){a.target='_blank';a.rel='noopener noreferrer';}links.append(a);});
+      body.firstElementChild.append(links);
+      const cv=document.createElement('a');cv.href='./assets/Nikita_Kasperevich_CV.pdf';cv.download='Nikita_Kasperevich_CV.pdf';cv.textContent=txt('Скачать CV · PDF','Download CV · PDF');body.lastElementChild.append(cv);
     }
     const index=diaryPages.indexOf(activePage);
     document.querySelector('.paper-number').textContent=String(index*2+1).padStart(2,'0');$('diary-page-right').textContent=String(index*2+2).padStart(2,'0');
+    $('diary-prev').setAttribute('aria-label',txt('Предыдущий разворот','Previous spread'));$('diary-next').setAttribute('aria-label',txt('Следующий разворот','Next spread'));
     $('diary-prev').disabled=index===0;$('diary-next').disabled=index===diaryPages.length-1;
     document.querySelector('.diary-book').dataset.section=activePage;
     $('diary-position').textContent=labels[activePage]+' · '+(index+1)+' / 3';
     $('diary-language').textContent=language==='ru'?'EN':'RU';
     document.querySelector('.notebook-close').textContent=txt('Esc — закрыть тетрадь','Esc — close notebook');
-    document.querySelector('.sketch-tv').hidden=activePage==='contact';
+    document.querySelector('.sketch-tv').hidden=activePage!=='contact';
+    document.querySelector('.sketch-lamp').hidden=true;
     document.querySelector('.paper-kicker').textContent=txt('ЛИЧНЫЕ ЗАМЕТКИ','PERSONAL NOTES');
   }
   document.querySelectorAll('[data-page]').forEach(b=>b.onclick=()=>turnDiary(b.dataset.page));

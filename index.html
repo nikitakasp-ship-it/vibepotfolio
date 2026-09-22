@@ -10,16 +10,16 @@
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='5' fill='%23101218'/%3E%3Crect x='4' y='6' width='24' height='19' rx='3' fill='%23b9b7af'/%3E%3Crect x='7' y='9' width='17' height='12' rx='2' fill='%234c6ded'/%3E%3Cpath d='M13 11l7 4-7 4z' fill='%23dce7ff'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="./style.css">
   <link rel="stylesheet" href="./refinement.css">
-  <link rel="stylesheet" href="./analog.css?v=0.0.3">
-  <link rel="stylesheet" href="./interfaces.css?v=0.0.3">
+  <link rel="stylesheet" href="./analog.css?v=0.0.3-cv1">
+  <link rel="stylesheet" href="./interfaces.css?v=0.0.3-cv1">
   <script src="./vendor/three.min.js" defer></script>
   <script src="./vendor/GLTFLoader.js" defer></script>
-  <script src="./content.js?v=0.0.3" defer></script>
-  <script src="./audio-engine.js?v=0.0.3" defer></script>
-  <script src="./look-input.js?v=0.0.3" defer></script>
-  <script src="./photo-inspector.js?v=0.0.3" defer></script>
-  <script src="./weather-context.js?v=0.0.3" defer></script>
-  <script src="./room.js?v=0.0.3" defer></script>
+  <script src="./content.js?v=0.0.3-cv1" defer></script>
+  <script src="./audio-engine.js?v=0.0.3-cv1" defer></script>
+  <script src="./look-input.js?v=0.0.3-cv1" defer></script>
+  <script src="./photo-inspector.js?v=0.0.3-cv1" defer></script>
+  <script src="./weather-context.js?v=0.0.3-cv1" defer></script>
+  <script src="./room.js?v=0.0.3-cv1" defer></script>
 </head>
 <body>
   <main id="experience" aria-label="Интерактивная 3D-комната">
@@ -98,7 +98,7 @@
       <div class="diary-leaf leaf-about"><button data-page="about" class="paper-tab active">Обо мне</button></div>
       <div class="diary-leaf leaf-process"><button data-page="process" class="paper-tab">Процесс</button></div>
       <div class="diary-leaf leaf-contact"><button data-page="contact" class="paper-tab">Контакты</button></div>
-      <div class="notebook-spread"><div class="notebook-left"><p class="paper-kicker">ЛИЧНЫЕ ЗАМЕТКИ</p><h1 id="notebook-heading" tabindex="-1">Обо мне</h1><p id="notebook-lead"></p><img class="diary-sketch sketch-lamp" src="./assets/diary-lamp.png" alt="Карандашный набросок настольной лампы"><span class="paper-number">01</span></div><div class="notebook-right"><div id="notebook-body"></div><img class="diary-sketch sketch-tv" src="./assets/diary-tv.png" alt="Набросок телевизора и раскадровка"><div class="paper-footer"><span id="diary-page-right">02</span></div></div></div>
+      <div class="notebook-spread"><div class="notebook-left"><p class="paper-kicker">ЛИЧНЫЕ ЗАМЕТКИ</p><h1 id="notebook-heading" tabindex="-1">Обо мне</h1><p id="notebook-lead"></p><div id="notebook-left-body"></div><img class="diary-sketch sketch-lamp" src="./assets/diary-lamp.png" alt="Карандашный набросок настольной лампы"><span class="paper-number">01</span></div><div class="notebook-right"><div id="notebook-body"></div><img class="diary-sketch sketch-tv" src="./assets/diary-tv.png" alt="Набросок телевизора и раскадровка"><div class="paper-footer"><span id="diary-page-right">02</span></div></div></div>
       <div class="page-turn-sheet" aria-hidden="true"></div>
       <button id="diary-prev" class="page-corner prev" aria-label="Предыдущий разворот">›</button><button id="diary-next" class="page-corner next" aria-label="Следующий разворот">›</button>
     </div><div class="diary-utilities"><span id="diary-position" aria-live="polite"></span><button id="diary-language" type="button">EN</button><button class="notebook-close" data-close>Esc — закрыть тетрадь</button></div>

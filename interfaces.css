@@ -105,3 +105,15 @@ body.diary-open .header,body.diary-open .footer,body.diary-open .quick-nav,body.
 .weather-settings input{width:18px;height:18px;flex:none;accent-color:#9ab8d0;margin-top:2px}
 .weather-actions{display:flex;gap:12px;flex-wrap:wrap}.weather-actions button{padding:10px 14px}
 .weather-actions button:disabled{opacity:.45;cursor:default}
+
+/* CV content occupies both paper leaves; keep each block inside the paper margins. */
+#notebook-left-body,#notebook-body{font:16px/1.5 Georgia,serif;white-space:normal}
+#notebook-left-body section,#notebook-body section{margin:0 0 18px}
+#notebook-left-body h2,#notebook-body h2{font:bold 15px/1.35 Georgia,serif;color:#443a2b;margin:0 0 8px}
+#notebook-left-body p,#notebook-body p{font:16px/1.5 Georgia,serif;white-space:pre-line;margin:0;color:#51483a}
+.diary-contact-links{display:grid;gap:10px;margin-top:16px}
+#notebook-body a{display:inline-block;font:16px/1.5 Georgia,serif;text-decoration:underline;text-underline-offset:4px;padding:5px 0}
+#notebook-body a:hover{color:#173b69}#notebook-body a:focus-visible{outline:2px solid #385d7c;outline-offset:4px}
+.notebook-panel .sketch-tv{max-height:135px;margin-top:10px}
+@media(min-width:701px){.notebook-spread{min-height:560px}.notebook-left,.notebook-right{padding-top:30px}.notebook-panel h1{font-size:32px;margin-bottom:12px}.notebook-left>p:not(.paper-kicker){font-size:18px;line-height:1.4;margin-bottom:16px}}
+@media(max-width:700px){#notebook-left-body p,#notebook-body p{font-size:15px;line-height:1.55}.notebook-panel .sketch-tv{max-height:105px}.notebook-right{padding-top:12px}.notebook-left{padding-bottom:8px}}
