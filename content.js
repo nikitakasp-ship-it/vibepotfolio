@@ -1,6 +1,6 @@
 /* Author content lives here. Null means not supplied; never substitute invented details. */
 window.ROOM_CONTENT = {
-  name: {ru: "Никита Касперевич", en: "Nikita Kasperevich"},
+  name: {ru: "Никита Касперович", en: "Nikita Kasperovich"},
   about: {ru: null, en: null},
   process: {ru: null, en: null},
   contacts: [{label: "nikitakasp@gmail.com", url: "mailto:nikitakasp@gmail.com"}, {label: "Telegram · @Kuspik", url: "https://t.me/Kuspik"}],
@@ -8,7 +8,7 @@ window.ROOM_CONTENT = {
   "about": {
     "ru": {
       "title": "Обо мне",
-      "lead": "Никита Касперевич",
+      "lead": "Никита Касперович",
       "left": [
         {
           "text": "Моушн-дизайнер / 3D-художник / AI-креатор"
@@ -38,7 +38,7 @@ window.ROOM_CONTENT = {
     },
     "en": {
       "title": "About me",
-      "lead": "Nikita Kasperevich",
+      "lead": "Nikita Kasperovich",
       "left": [
         {
           "text": "Motion Designer / 3D Artist / AI Content Creator"
@@ -128,7 +128,7 @@ window.ROOM_CONTENT = {
   "contact": {
     "ru": {
       "title": "Контакты",
-      "lead": "Никита Касперевич",
+      "lead": "Никита Касперович",
       "left": [
         {
           "heading": "Образование",
@@ -152,7 +152,7 @@ window.ROOM_CONTENT = {
     },
     "en": {
       "title": "Contact",
-      "lead": "Nikita Kasperevich",
+      "lead": "Nikita Kasperovich",
       "left": [
         {
           "heading": "Education",

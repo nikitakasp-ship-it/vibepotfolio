@@ -117,3 +117,8 @@ body.diary-open .header,body.diary-open .footer,body.diary-open .quick-nav,body.
 .notebook-panel .sketch-tv{max-height:135px;margin-top:10px}
 @media(min-width:701px){.notebook-spread{min-height:560px}.notebook-left,.notebook-right{padding-top:30px}.notebook-panel h1{font-size:32px;margin-bottom:12px}.notebook-left>p:not(.paper-kicker){font-size:18px;line-height:1.4;margin-bottom:16px}}
 @media(max-width:700px){#notebook-left-body p,#notebook-body p{font-size:15px;line-height:1.55}.notebook-panel .sketch-tv{max-height:105px}.notebook-right{padding-top:12px}.notebook-left{padding-bottom:8px}}
+
+/* Portfolio categories stay readable on narrow screens. */
+.library-toolbar{grid-template-columns:minmax(140px,1fr) minmax(100px,.6fr) minmax(160px,1fr) minmax(120px,.7fr)}
+@media(max-width:900px){.library-toolbar{grid-template-columns:1fr 1fr}.library-toolbar input{grid-column:1/-1}}
+@media(max-width:420px){.library-toolbar{grid-template-columns:1fr}.library-toolbar input{grid-column:auto}}
