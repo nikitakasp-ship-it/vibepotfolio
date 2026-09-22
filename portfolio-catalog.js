@@ -38,5 +38,526 @@ window.PORTFOLIO_CATALOG = {
       ]
     }
   },
-  "projects": []
+  "projects": [
+    {
+      "id": "video-0f0a046aa9cbd9f4",
+      "number": "01",
+      "section": "AI",
+      "category": "avatars",
+      "categoryLabel": {
+        "ru": "Аватары",
+        "en": "Avatars"
+      },
+      "copy": {
+        "title": "dexter",
+        "description": ""
+      },
+      "title": "dexter",
+      "subtitle": "AI / Аватары",
+      "description": "",
+      "video": "./portfolio/AI/avatars/dexter.mp4",
+      "poster": null,
+      "color": "#afa0e0"
+    },
+    {
+      "id": "video-e583812656fcc3c4",
+      "number": "02",
+      "section": "AI",
+      "category": "avatars",
+      "categoryLabel": {
+        "ru": "Аватары",
+        "en": "Avatars"
+      },
+      "copy": {
+        "title": "lora",
+        "description": ""
+      },
+      "title": "lora",
+      "subtitle": "AI / Аватары",
+      "description": "",
+      "video": "./portfolio/AI/avatars/lora.mp4",
+      "poster": null,
+      "color": "#afa0e0"
+    },
+    {
+      "id": "video-6b2eac0d2d8871df",
+      "number": "03",
+      "section": "AI",
+      "category": "avatars",
+      "categoryLabel": {
+        "ru": "Аватары",
+        "en": "Avatars"
+      },
+      "copy": {
+        "title": "lora2",
+        "description": ""
+      },
+      "title": "lora2",
+      "subtitle": "AI / Аватары",
+      "description": "",
+      "video": "./portfolio/AI/avatars/lora2.mp4",
+      "poster": null,
+      "color": "#afa0e0"
+    },
+    {
+      "id": "video-2297fb0494ea8bb8",
+      "number": "04",
+      "section": "AI",
+      "category": "experiments",
+      "categoryLabel": {
+        "ru": "Эксперименты",
+        "en": "Experiments"
+      },
+      "copy": {
+        "title": "demiand",
+        "description": ""
+      },
+      "title": "demiand",
+      "subtitle": "AI / Эксперименты",
+      "description": "",
+      "video": "./portfolio/AI/experiments/demiand.mp4",
+      "poster": null,
+      "color": "#afa0e0"
+    },
+    {
+      "id": "video-6fb59e2dc8325f63",
+      "number": "05",
+      "section": "AI",
+      "category": "experiments",
+      "categoryLabel": {
+        "ru": "Эксперименты",
+        "en": "Experiments"
+      },
+      "copy": {
+        "title": "woman",
+        "description": ""
+      },
+      "title": "woman",
+      "subtitle": "AI / Эксперименты",
+      "description": "",
+      "video": "./portfolio/AI/experiments/woman.mp4",
+      "poster": null,
+      "color": "#afa0e0"
+    },
+    {
+      "id": "video-4e93b8390a7b06bf",
+      "number": "06",
+      "section": "AI",
+      "category": "experiments",
+      "categoryLabel": {
+        "ru": "Эксперименты",
+        "en": "Experiments"
+      },
+      "copy": {
+        "title": "Корзина слишком маленькая",
+        "description": ""
+      },
+      "title": "Корзина слишком маленькая",
+      "subtitle": "AI / Эксперименты",
+      "description": "",
+      "video": "./portfolio/AI/experiments/%D0%9A%D0%BE%D1%80%D0%B7%D0%B8%D0%BD%D0%B0%20%D1%81%D0%BB%D0%B8%D1%88%D0%BA%D0%BE%D0%BC%20%D0%BC%D0%B0%D0%BB%D0%B5%D0%BD%D1%8C%D0%BA%D0%B0%D1%8F.mp4",
+      "poster": null,
+      "color": "#afa0e0"
+    },
+    {
+      "id": "video-ab2227b7a726d20d",
+      "number": "07",
+      "section": "AI",
+      "category": "experiments",
+      "categoryLabel": {
+        "ru": "Эксперименты",
+        "en": "Experiments"
+      },
+      "copy": {
+        "title": "МТС1",
+        "description": ""
+      },
+      "title": "МТС1",
+      "subtitle": "AI / Эксперименты",
+      "description": "",
+      "video": "./portfolio/AI/experiments/%D0%9C%D0%A2%D0%A11.mp4",
+      "poster": null,
+      "color": "#afa0e0"
+    },
+    {
+      "id": "video-0799512322a68dee",
+      "number": "08",
+      "section": "AI",
+      "category": "experiments",
+      "categoryLabel": {
+        "ru": "Эксперименты",
+        "en": "Experiments"
+      },
+      "copy": {
+        "title": "пицца 1",
+        "description": ""
+      },
+      "title": "пицца 1",
+      "subtitle": "AI / Эксперименты",
+      "description": "",
+      "video": "./portfolio/AI/experiments/%D0%BF%D0%B8%D1%86%D1%86%D0%B0_1.mp4",
+      "poster": null,
+      "color": "#afa0e0"
+    },
+    {
+      "id": "video-4b3931718f9f527d",
+      "number": "09",
+      "section": "AI",
+      "category": "experiments",
+      "categoryLabel": {
+        "ru": "Эксперименты",
+        "en": "Experiments"
+      },
+      "copy": {
+        "title": "Покупатель ушел 1",
+        "description": ""
+      },
+      "title": "Покупатель ушел 1",
+      "subtitle": "AI / Эксперименты",
+      "description": "",
+      "video": "./portfolio/AI/experiments/%D0%9F%D0%BE%D0%BA%D1%83%D0%BF%D0%B0%D1%82%D0%B5%D0%BB%D1%8C%20%D1%83%D1%88%D0%B5%D0%BB_1.mp4",
+      "poster": null,
+      "color": "#afa0e0"
+    },
+    {
+      "id": "video-0714b66868454334",
+      "number": "10",
+      "section": "AI",
+      "category": "experiments",
+      "categoryLabel": {
+        "ru": "Эксперименты",
+        "en": "Experiments"
+      },
+      "copy": {
+        "title": "Покупатель ушел",
+        "description": ""
+      },
+      "title": "Покупатель ушел",
+      "subtitle": "AI / Эксперименты",
+      "description": "",
+      "video": "./portfolio/AI/experiments/%D0%9F%D0%BE%D0%BA%D1%83%D0%BF%D0%B0%D1%82%D0%B5%D0%BB%D1%8C%20%D1%83%D1%88%D0%B5%D0%BB.mp4",
+      "poster": null,
+      "color": "#afa0e0"
+    },
+    {
+      "id": "video-f6f6c6a9c084c253",
+      "number": "11",
+      "section": "AI",
+      "category": "experiments",
+      "categoryLabel": {
+        "ru": "Эксперименты",
+        "en": "Experiments"
+      },
+      "copy": {
+        "title": "самурай",
+        "description": ""
+      },
+      "title": "самурай",
+      "subtitle": "AI / Эксперименты",
+      "description": "",
+      "video": "./portfolio/AI/experiments/%D1%81%D0%B0%D0%BC%D1%83%D1%80%D0%B0%D0%B9.mp4",
+      "poster": null,
+      "color": "#afa0e0"
+    },
+    {
+      "id": "video-82f774ce96de7339",
+      "number": "12",
+      "section": "Motion",
+      "category": "commercials",
+      "categoryLabel": {
+        "ru": "Реклама",
+        "en": "Commercials"
+      },
+      "copy": {
+        "title": "Cloud enabled hotel management dashboard Diana  15.12.25",
+        "description": ""
+      },
+      "title": "Cloud enabled hotel management dashboard Diana  15.12.25",
+      "subtitle": "Motion / Реклама",
+      "description": "",
+      "video": "./portfolio/Motion/commercials/Cloud-enabled%20hotel%20management%20dashboard%20Diana%20%2015.12.25.mp4",
+      "poster": null,
+      "color": "#67b9e6"
+    },
+    {
+      "id": "video-ddbffe1407cb64ac",
+      "number": "13",
+      "section": "Motion",
+      "category": "commercials",
+      "categoryLabel": {
+        "ru": "Реклама",
+        "en": "Commercials"
+      },
+      "copy": {
+        "title": "IMG 9546",
+        "description": ""
+      },
+      "title": "IMG 9546",
+      "subtitle": "Motion / Реклама",
+      "description": "",
+      "video": "./portfolio/Motion/commercials/IMG_9546.MP4",
+      "poster": null,
+      "color": "#67b9e6"
+    },
+    {
+      "id": "video-2ee679066ca917f3",
+      "number": "14",
+      "section": "Motion",
+      "category": "commercials",
+      "categoryLabel": {
+        "ru": "Реклама",
+        "en": "Commercials"
+      },
+      "copy": {
+        "title": "те",
+        "description": ""
+      },
+      "title": "те",
+      "subtitle": "Motion / Реклама",
+      "description": "",
+      "video": "./portfolio/Motion/commercials/%D1%82%D0%B5.mp4",
+      "poster": null,
+      "color": "#67b9e6"
+    },
+    {
+      "id": "video-053c400061d6c293",
+      "number": "15",
+      "section": "Motion",
+      "category": "gambling",
+      "categoryLabel": {
+        "ru": "Гемблинг",
+        "en": "Gambling"
+      },
+      "copy": {
+        "title": "211 Book Of Ra DE   2",
+        "description": ""
+      },
+      "title": "211 Book Of Ra DE   2",
+      "subtitle": "Motion / Гемблинг",
+      "description": "",
+      "video": "./portfolio/Motion/gambling/211_Book%20Of%20Ra_DE%20-%202.mp4",
+      "poster": null,
+      "color": "#67b9e6"
+    },
+    {
+      "id": "video-60c57e68ce981ac0",
+      "number": "16",
+      "section": "Motion",
+      "category": "gambling",
+      "categoryLabel": {
+        "ru": "Гемблинг",
+        "en": "Gambling"
+      },
+      "copy": {
+        "title": "211 Book of the Fallen EUR",
+        "description": ""
+      },
+      "title": "211 Book of the Fallen EUR",
+      "subtitle": "Motion / Гемблинг",
+      "description": "",
+      "video": "./portfolio/Motion/gambling/211_Book%20of%20the%20Fallen_EUR.mp4",
+      "poster": null,
+      "color": "#67b9e6"
+    },
+    {
+      "id": "video-19225038e6b907ea",
+      "number": "17",
+      "section": "Motion",
+      "category": "gambling",
+      "categoryLabel": {
+        "ru": "Гемблинг",
+        "en": "Gambling"
+      },
+      "copy": {
+        "title": "2111 Chiken Road EUR",
+        "description": ""
+      },
+      "title": "2111 Chiken Road EUR",
+      "subtitle": "Motion / Гемблинг",
+      "description": "",
+      "video": "./portfolio/Motion/gambling/2111_Chiken%20Road_EUR.mp4",
+      "poster": null,
+      "color": "#67b9e6"
+    },
+    {
+      "id": "video-a34a3a3d69d0f4ff",
+      "number": "18",
+      "section": "Motion",
+      "category": "gambling",
+      "categoryLabel": {
+        "ru": "Гемблинг",
+        "en": "Gambling"
+      },
+      "copy": {
+        "title": "224 Coin Strike ENG",
+        "description": ""
+      },
+      "title": "224 Coin Strike ENG",
+      "subtitle": "Motion / Гемблинг",
+      "description": "",
+      "video": "./portfolio/Motion/gambling/224_Coin%20Strike_ENG.mp4",
+      "poster": null,
+      "color": "#67b9e6"
+    },
+    {
+      "id": "video-7ff1818a9d962d4a",
+      "number": "19",
+      "section": "Motion",
+      "category": "gambling",
+      "categoryLabel": {
+        "ru": "Гемблинг",
+        "en": "Gambling"
+      },
+      "copy": {
+        "title": "224 Coin Volcano AU",
+        "description": ""
+      },
+      "title": "224 Coin Volcano AU",
+      "subtitle": "Motion / Гемблинг",
+      "description": "",
+      "video": "./portfolio/Motion/gambling/224_Coin%20Volcano_AU.mp4",
+      "poster": null,
+      "color": "#67b9e6"
+    },
+    {
+      "id": "video-110e10d87ea297cc",
+      "number": "20",
+      "section": "Motion",
+      "category": "JDM",
+      "categoryLabel": {
+        "ru": "JDM",
+        "en": "JDM"
+      },
+      "copy": {
+        "title": "0000001 0050 (2)",
+        "description": ""
+      },
+      "title": "0000001 0050 (2)",
+      "subtitle": "Motion / JDM",
+      "description": "",
+      "video": "./portfolio/Motion/JDM/_0000001-0050%20(2).webm",
+      "poster": null,
+      "color": "#67b9e6"
+    },
+    {
+      "id": "video-ada3cebaf62aa19f",
+      "number": "21",
+      "section": "Motion",
+      "category": "JDM",
+      "categoryLabel": {
+        "ru": "JDM",
+        "en": "JDM"
+      },
+      "copy": {
+        "title": "дорога дым 960 960 (2) (2)",
+        "description": ""
+      },
+      "title": "дорога дым 960 960 (2) (2)",
+      "subtitle": "Motion / JDM",
+      "description": "",
+      "video": "./portfolio/Motion/JDM/%D0%B4%D0%BE%D1%80%D0%BE%D0%B3%D0%B0%20%D0%B4%D1%8B%D0%BC%20960%20960%20(2)%20(2).webm",
+      "poster": null,
+      "color": "#67b9e6"
+    },
+    {
+      "id": "video-729a450db85c2ae3",
+      "number": "22",
+      "section": "Motion",
+      "category": "JDM",
+      "categoryLabel": {
+        "ru": "JDM",
+        "en": "JDM"
+      },
+      "copy": {
+        "title": "достижения 3 960 960 (2)",
+        "description": ""
+      },
+      "title": "достижения 3 960 960 (2)",
+      "subtitle": "Motion / JDM",
+      "description": "",
+      "video": "./portfolio/Motion/JDM/%D0%B4%D0%BE%D1%81%D1%82%D0%B8%D0%B6%D0%B5%D0%BD%D0%B8%D1%8F%203%20960%20960%20(2).webm",
+      "poster": null,
+      "color": "#67b9e6"
+    },
+    {
+      "id": "video-2aeb1ffcabbd3144",
+      "number": "23",
+      "section": "Motion",
+      "category": "JDM",
+      "categoryLabel": {
+        "ru": "JDM",
+        "en": "JDM"
+      },
+      "copy": {
+        "title": "достижения 3 960 960 000001 4",
+        "description": ""
+      },
+      "title": "достижения 3 960 960 000001 4",
+      "subtitle": "Motion / JDM",
+      "description": "",
+      "video": "./portfolio/Motion/JDM/%D0%B4%D0%BE%D1%81%D1%82%D0%B8%D0%B6%D0%B5%D0%BD%D0%B8%D1%8F%203%20960%20960_000001_4.mp4",
+      "poster": null,
+      "color": "#67b9e6"
+    },
+    {
+      "id": "video-e8db33bf574948ef",
+      "number": "24",
+      "section": "Motion",
+      "category": "PSY",
+      "categoryLabel": {
+        "ru": "PSY",
+        "en": "PSY"
+      },
+      "copy": {
+        "title": "лабиринт шары 960 960",
+        "description": ""
+      },
+      "title": "лабиринт шары 960 960",
+      "subtitle": "Motion / PSY",
+      "description": "",
+      "video": "./portfolio/Motion/PSY/%D0%BB%D0%B0%D0%B1%D0%B8%D1%80%D0%B8%D0%BD%D1%82%20%D1%88%D0%B0%D1%80%D1%8B%20960%20960.webm",
+      "poster": null,
+      "color": "#67b9e6"
+    },
+    {
+      "id": "video-92f7d54203960d25",
+      "number": "25",
+      "section": "Motion",
+      "category": "PSY",
+      "categoryLabel": {
+        "ru": "PSY",
+        "en": "PSY"
+      },
+      "copy": {
+        "title": "одуванчик свет 960 960",
+        "description": ""
+      },
+      "title": "одуванчик свет 960 960",
+      "subtitle": "Motion / PSY",
+      "description": "",
+      "video": "./portfolio/Motion/PSY/%D0%BE%D0%B4%D1%83%D0%B2%D0%B0%D0%BD%D1%87%D0%B8%D0%BA%20%D1%81%D0%B2%D0%B5%D1%82%20960%20960.webm",
+      "poster": null,
+      "color": "#67b9e6"
+    },
+    {
+      "id": "video-9d274571f28b056d",
+      "number": "26",
+      "section": "Motion",
+      "category": "PSY",
+      "categoryLabel": {
+        "ru": "PSY",
+        "en": "PSY"
+      },
+      "copy": {
+        "title": "стебель листва 960 480",
+        "description": ""
+      },
+      "title": "стебель листва 960 480",
+      "subtitle": "Motion / PSY",
+      "description": "",
+      "video": "./portfolio/Motion/PSY/%D1%81%D1%82%D0%B5%D0%B1%D0%B5%D0%BB%D1%8C%20%D0%BB%D0%B8%D1%81%D1%82%D0%B2%D0%B0%20960%20480.webm",
+      "poster": null,
+      "color": "#67b9e6"
+    }
+  ]
 };
