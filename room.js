@@ -77,7 +77,7 @@
     ctx.globalAlpha=.12;for(let i=0;i<210;i++){ctx.fillStyle=i%2?'#fff':'#020611';ctx.fillRect((i*73)%400,(i*137)%600,1,1);}ctx.globalAlpha=1;
     coverCache.set(cacheKey,c);return c;
   }
-  function makeCover(project,index){const c=createCassetteArtwork(project.title,project.section,project.color,project.number,400,600);project.cover=project.poster||c.toDataURL('image/png');project.coverCanvas=c;}
+  function makeCover(project,index){const c=createCassetteArtwork(project.title,project.section,project.color,project.number,400,600);project.cover=project.poster||c.toDataURL('image/png');project.coverCanvas=c;if(project.poster){const image=new Image();image.onload=()=>{const ctx=c.getContext('2d'),x=42,y=86,w=326,h=292,scale=Math.max(w/image.width,h/image.height),dw=image.width*scale,dh=image.height*scale;ctx.save();ctx.beginPath();ctx.rect(x,y,w,h);ctx.clip();ctx.fillStyle='#080b11';ctx.fillRect(x,y,w,h);ctx.drawImage(image,x+(w-dw)/2,y+(h-dh)/2,dw,dh);ctx.restore();ctx.strokeStyle='#dce6f6aa';ctx.lineWidth=2;ctx.strokeRect(x,y,w,h);if(project.coverTexture){project.coverTexture.image=c;project.coverTexture.needsUpdate=true;}if(selected===project)previewTape(project);};image.src=project.poster;}}
   PROJECTS.forEach(makeCover);
   let catalogPage=0, librarySection='all', libraryCategory='all';
   const catalogPageSize=8;
@@ -92,7 +92,8 @@
     document.querySelectorAll('.tape-card').forEach(b=>{const active=b.dataset.project===project.id;b.classList.toggle('active',active);b.setAttribute('aria-pressed',active);});
   }
   const projectCategories=section=>{
-    const result={...(catalog.categories[section]||{})};
+    const active=new Set(catalog.projects.filter(project=>project.section===section).map(project=>project.category));
+    const result=Object.fromEntries(Object.entries(catalog.categories[section]||{}).filter(([key])=>active.has(key)));
     for(const project of catalog.projects)if(project.section===section)result[project.category]=[project.categoryLabel.ru,project.categoryLabel.en];
     return result;
   };
@@ -246,12 +247,12 @@
   function tapeShelf(){
     const shelf=group(1.14,0,-3.04);
     for(const x of [-.58,.58])box(.08,1.05,.62,x,.57,0,materials.wood,shelf);for(const y of [.10,1.06])box(1.24,.09,.67,0,y,0,materials.wood,shelf);box(1.15,.92,.05,0,.57,-.29,materials.darkWood,shelf);
-    const categoryEntries=section=>Object.entries(catalog.categories[section]||{}).map(([id,labels])=>({id:`shelf-${section}-${id}`,title:labels[language==='ru'?0:1],section,color:section==='AI'?'#afa0e0':'#67b9e6'}));
+    const categoryEntries=section=>Object.entries(projectCategories(section)).map(([id,labels])=>({id:`shelf-${section}-${id}`,title:labels[language==='ru'?0:1],section,color:section==='AI'?'#afa0e0':'#67b9e6'}));
     const stock=[{id:'shelf-ai',title:'AI',section:'AI',color:'#afa0e0'},{id:'shelf-motion',title:'Motion',section:'Motion',color:'#67b9e6'},...categoryEntries('AI'),...categoryEntries('Motion')];
     const entries=stock.map(entry=>{const project=PROJECTS.find(project=>project.section===entry.section&&(entry.id===`shelf-${entry.section}`?project.category==='other':entry.id===`shelf-${entry.section}-${project.category}`));return project?{...entry,id:project.id,title:project.title,project,artwork:project.coverCanvas}:entry;}).slice(0,4);
     entries.forEach((entry,i)=>{const tape=new THREE.Group();shelf.add(tape);if(entry.project)entry.project.sceneObject=tape;tape.position.set(-.435+i*.29,.585,.08);tape.rotation.z=(i-1.5)*-.012;
       box(.264,.79,.16,0,0,0,mat('#11141d'),tape);box(.246,.758,.014,0,0,.09,mat('#323744'),tape);
-      const art=entry.artwork||createCassetteArtwork(entry.title,entry.section,entry.color,entry.project?.number||String(i+1).padStart(2,'0'),240,600);const tex=new THREE.CanvasTexture(art);tex.encoding=THREE.sRGBEncoding;tex.anisotropy=4;if(i<2)shelfCoverTextures[i]=tex;flat(.224,.713,.007,0,.102,mat('#ffffff',{map:tex,emissive:'#ffffff',emissiveMap:tex,emissiveIntensity:.08}),tape);
+      const art=entry.artwork||createCassetteArtwork(entry.title,entry.section,entry.color,entry.project?.number||String(i+1).padStart(2,'0'),240,600);const tex=new THREE.CanvasTexture(art);tex.encoding=THREE.sRGBEncoding;tex.anisotropy=4;if(entry.project)entry.project.coverTexture=tex;if(i<2)shelfCoverTextures[i]=tex;flat(.224,.713,.007,0,.102,mat('#ffffff',{map:tex,emissive:'#ffffff',emissiveMap:tex,emissiveIntensity:.08}),tape);
       interactObject(tape,'tape',entry.title,()=>entry.project?selectTape(entry.project):(librarySection=entry.section,libraryCategory=entry.id.startsWith('shelf-'+entry.section+'-')?entry.id.slice(('shelf-'+entry.section+'-').length):'all',openDialog('tapes-dialog')));
     });
     collision(.50,1.8,-3.55,-2.48);floorShadow(1.14,-3.0,1.6,1.2);hotspot(V(1.15,.72,-2.53),'Выбрать VHS',()=>openDialog('tapes-dialog'));
