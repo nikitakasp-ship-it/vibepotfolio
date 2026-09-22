@@ -3,24 +3,24 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="application-version" content="0.0.4">
+  <meta name="application-version" content="0.0.5">
   <meta name="theme-color" content="#101218">
   <meta name="description" content="После полуночи — интерактивная комната моушн-дизайнера. Исследуйте пространство, выбирайте VHS и включайте телевизор.">
   <title>После полуночи — комната</title>
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='5' fill='%23101218'/%3E%3Crect x='4' y='6' width='24' height='19' rx='3' fill='%23b9b7af'/%3E%3Crect x='7' y='9' width='17' height='12' rx='2' fill='%234c6ded'/%3E%3Cpath d='M13 11l7 4-7 4z' fill='%23dce7ff'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="./style.css">
   <link rel="stylesheet" href="./refinement.css">
-  <link rel="stylesheet" href="./analog.css?v=0.0.4-library1">
-  <link rel="stylesheet" href="./interfaces.css?v=0.0.4-library1">
+  <link rel="stylesheet" href="./analog.css?v=0.0.5-covers1">
+  <link rel="stylesheet" href="./interfaces.css?v=0.0.5-covers1">
   <script src="./vendor/three.min.js" defer></script>
   <script src="./vendor/GLTFLoader.js" defer></script>
-  <script src="./content.js?v=0.0.4-library1" defer></script>
-  <script src="./audio-engine.js?v=0.0.4-library1" defer></script>
-  <script src="./look-input.js?v=0.0.4-library1" defer></script>
-  <script src="./photo-inspector.js?v=0.0.4-library1" defer></script>
-  <script src="./weather-context.js?v=0.0.4-library1" defer></script>
-  <script src="./portfolio-catalog.js?v=0.0.4-library1" defer></script>
-  <script src="./room.js?v=0.0.4-library1" defer></script>
+  <script src="./content.js?v=0.0.5-covers1" defer></script>
+  <script src="./audio-engine.js?v=0.0.5-covers1" defer></script>
+  <script src="./look-input.js?v=0.0.5-covers1" defer></script>
+  <script src="./photo-inspector.js?v=0.0.5-covers1" defer></script>
+  <script src="./weather-context.js?v=0.0.5-covers1" defer></script>
+  <script src="./portfolio-catalog.js?v=0.0.5-covers1" defer></script>
+  <script src="./room.js?v=0.0.5-covers1" defer></script>
 </head>
 <body>
   <main id="experience" aria-label="Интерактивная 3D-комната">
@@ -31,7 +31,7 @@
     <header class="header">
       <button class="wordmark" id="home" aria-label="Вернуться к входу"><span>ПОСЛЕ</span><span>ПОЛУНОЧИ<span class="logo-star">✳</span></span></button>
       <nav class="nav" aria-label="Главное меню">
-        <button id="tapes-menu">Кассеты <span class="nav-count">03</span></button>
+        <button id="tapes-menu">Кассеты <span class="nav-count">00</span></button>
         <button id="notebook-menu">Тетрадь</button><button id="music-menu" aria-label="Магнитофон">♫</button><button id="language" aria-label="Switch to English">EN</button><button id="concept-menu" hidden>Концепт</button>
         <button id="sound" class="icon-button" aria-label="Включить звук" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4zM17 9l5 6m0-6-5 6"/></svg></button>
         <button id="help-menu" class="icon-button help-button" aria-label="Управление">?</button>
@@ -63,13 +63,13 @@
     <div class="panel-heading"><div><p class="eyebrow">AFTER MIDNIGHT / VHS</p><h1 id="tapes-heading">Видеотека</h1></div><button class="close" data-close aria-label="Закрыть">×</button></div>
     <div class="library-toolbar"><button id="library-back" class="text-button library-back" hidden>← Все разделы</button><input id="tape-search" type="search" aria-label="Поиск по работам" placeholder="Поиск по работам"><select id="tape-sort" aria-label="Сортировка"><option value="number">По номеру</option><option value="title">По названию</option></select></div>
     <div class="library-layout"><div><div id="tape-grid" class="tape-grid"></div><p id="tape-empty" role="status" hidden></p><div class="library-pagination"><button id="tape-prev" aria-label="Предыдущая страница">◀</button><span id="tape-count" aria-live="polite"></span><button id="tape-next" aria-label="Следующая страница">▶</button></div></div><aside class="library-preview" aria-label="Выбранная работа"><canvas id="library-still" width="640" height="360" aria-label="Предпросмотр работы"></canvas><p id="library-number" class="eyebrow"></p><h2 id="library-title"></h2><p id="library-description"></p><button id="library-play" class="primary">Смотреть ▶</button><button id="library-details" class="text-button">Обложка и описание</button></aside></div>
-    <p class="prototype-note">Демонстрационные кассеты для проверки просмотра. Авторские видео будут добавлены отдельно.</p>
+    <p class="prototype-note">Выберите AI или Motion, затем откройте категорию и кассету.</p>
   </dialog>
 
   <dialog id="tape-dialog" class="panel tape-detail" aria-labelledby="tape-heading">
     <button class="close detail-close" data-close aria-label="Закрыть">×</button>
     <div class="detail-cover"><img id="selected-cover" alt=""></div>
-    <div class="detail-copy"><p class="eyebrow" id="tape-number">КАССЕТА 01</p><h1 id="tape-heading">Движение</h1><p id="tape-description"></p><span class="demo-label">Демонстрационный этюд</span><button id="insert" class="primary">Вставить в видеомагнитофон <span aria-hidden="true">▶</span></button><button id="back-to-tapes" class="text-button">Все кассеты</button></div>
+    <div class="detail-copy"><p class="eyebrow" id="tape-number">VHS</p><h1 id="tape-heading">Видеотека</h1><p id="tape-description"></p><span class="demo-label" hidden>Демонстрационный этюд</span><button id="insert" class="primary">Вставить в видеомагнитофон <span aria-hidden="true">▶</span></button><button id="back-to-tapes" class="text-button">Все кассеты</button></div>
   </dialog>
 
   <dialog id="concept-dialog" class="panel concept-panel" aria-labelledby="concept-heading">
@@ -93,7 +93,7 @@
     <p>Кнопки внизу перенесут к телевизору и столу. Кассеты всегда доступны через меню сверху.</p><p>Звук включается только по вашему желанию.</p><details class="asset-credits"><summary>Материалы</summary><p>Playstation 1 with Crash Bandicoot Disc — <a href="https://sketchfab.com/Sheyk940" target="_blank" rel="noopener noreferrer">Juan Galindo</a>, <a href="https://sketchfab.com/3d-models/playstation-1-with-crash-bandicoot-disc-93dbf6c499d84ae2ae2c7b07aa537a11" target="_blank" rel="noopener noreferrer">Sketchfab</a>, <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer">CC BY 4.0</a>. <span>Оптимизирована для сайта.</span></p><p>MindStream — DST · Searching — yd. <a href="https://creativecommons.org/publicdomain/zero/1.0/" target="_blank" rel="noopener noreferrer">CC0</a>.</p></details>
   </dialog>
 
-  <dialog id="screen-dialog" class="screen-dialog" aria-label="Полноэкранный просмотр"><button class="close screen-close" data-close aria-label="Закрыть полноэкранный просмотр">×</button><canvas id="full-screen"></canvas><video id="project-video" controls playsinline hidden></video><div class="full-caption"><span id="full-title">Движение</span><span class="demo-chip" id="full-demo">ДЕМО</span><button id="full-pause" class="text-button">Пауза</button><button id="full-eject" class="text-button">Извлечь кассету</button></div></dialog>
+  <dialog id="screen-dialog" class="screen-dialog" aria-label="Полноэкранный просмотр"><button class="close screen-close" data-close aria-label="Закрыть полноэкранный просмотр">×</button><canvas id="full-screen"></canvas><video id="project-video" controls playsinline hidden></video><div class="full-caption"><span id="full-title">Видеотека</span><span class="demo-chip" id="full-demo" hidden></span><button id="full-pause" class="text-button">Пауза</button><button id="full-eject" class="text-button">Извлечь кассету</button></div></dialog>
   <dialog id="notebook-dialog" class="panel notebook-panel" aria-labelledby="notebook-heading">
     <div class="diary-book" data-section="about">
       <div class="diary-leaf leaf-about"><button data-page="about" class="paper-tab active">Обо мне</button></div>

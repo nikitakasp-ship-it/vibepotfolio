@@ -31,6 +31,11 @@ button:disabled{opacity:.35;cursor:default}
 .library-pagination{display:flex;align-items:center;justify-content:center;gap:20px;font:13px RoomMono,monospace}
 .library-pagination button{width:44px;height:44px}.prototype-note{margin-top:24px;max-width:none}
 .library-preview[hidden],.diary-sketch[hidden]{display:none}
+.tapes-panel{display:flex;flex-direction:column;overflow:hidden;height:min(900px,calc(100svh - 40px));max-height:calc(100svh - 40px)}
+#tapes-dialog .panel-heading,#tapes-dialog .library-toolbar,#tapes-dialog .prototype-note{flex:none}
+#tapes-dialog .library-layout{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;padding-right:4px}
+#tapes-dialog .library-layout>div:first-child{min-width:0}
+#tapes-dialog .prototype-note{margin-bottom:0}
 /* Tape player: real transport and mixers, no decorative fake equalizer. */
 .music-panel{width:min(650px,calc(100vw - 32px))}
 .music-display{margin-top:0;border:4px ridge #536171;background:repeating-linear-gradient(0deg,#07150f 0 3px,#0a1912 3px 4px);color:var(--ui-green);box-shadow:inset 0 0 24px #000}
@@ -127,8 +132,6 @@ body.diary-open .header,body.diary-open .footer,body.diary-open .quick-nav,body.
 .library-toolbar{grid-template-columns:minmax(170px,1fr) auto}
 .library-toolbar.has-back{grid-template-columns:auto minmax(170px,1fr) auto}
 .library-back{min-height:44px;padding:8px 14px;border:1px solid #596275;background:#151c29;color:#d1d8e5;cursor:pointer}
-.folder-card .folder-cover{display:flex;align-items:center;justify-content:center;overflow:hidden;background:linear-gradient(145deg,#080c15,#1e263b)}
-.folder-graphic{position:relative;width:74%;height:72%;border:1px solid color-mix(in srgb,var(--folder-color),transparent 35%);background:linear-gradient(145deg,color-mix(in srgb,var(--folder-color),transparent 84%),#0d1424 72%);box-shadow:0 0 32px color-mix(in srgb,var(--folder-color),transparent 76%),inset 0 0 28px #080c1544;display:grid;place-items:center}
-.folder-graphic:before{content:"";position:absolute;top:-13px;left:10px;width:38%;height:14px;border:1px solid color-mix(in srgb,var(--folder-color),transparent 35%);border-bottom:0;background:#11182a}
-.folder-graphic span{font:700 clamp(20px,4vw,34px)/1 Arial,sans-serif;letter-spacing:.08em;color:var(--folder-color);text-shadow:0 0 20px color-mix(in srgb,var(--folder-color),transparent 50%)}
+.folder-card .folder-cover{padding:4px 4px 4px 8px;background:#080c14}
+.folder-card .folder-cover img{width:100%;height:100%;display:block;object-fit:cover}
 @media(max-width:700px){.library-toolbar{grid-template-columns:1fr auto}.library-back{grid-column:1/-1;justify-self:start}}
