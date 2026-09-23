@@ -24,9 +24,10 @@
     music.muted=!soundOn||document.hidden;$('project-video').muted=!soundOn||document.hidden;
     if(!soundOn||document.hidden){foley?.stopAll();for(const group of syntheticVoices.keys())stopFoley(group);}
   }
-  let renderer, scene, camera, tvTexture, tvCanvas, tvContext, screenMesh, tvGlow, lampLight, lampShade, door, deskLight;
+  let renderer, scene, camera, tvTexture, tvCanvas, tvContext, screenMesh, tvGlow, lampLight, lampShade, door, deskLight, deskBounce;
+  const deskLampGlowMaterials=[];
   let currentTarget = null, lastFrame = 0, clockSeconds = 0, lastTVDraw = 0, lastOverlay = 0;
-  let yaw = 0, pitch = 0, lampOn = true, animationId, movingTape = null, insertionSequence = 0;
+  let yaw = 0, pitch = 0, lampOn = false, animationId, movingTape = null, insertionSequence = 0;
   const keys = new Set(), touchKeys = new Set(), interactive = [], hotspots = [], colliders = [];
   const raycaster = new THREE.Raycaster(), pointer = new THREE.Vector2();
   const clock = new THREE.Clock(), seedState = {value:419};
@@ -236,8 +237,8 @@
     interactObject(tv,'tv','Смотреть телевизор',()=>playing?openScreen():openDialog('tapes-dialog'));
     tvGlow=new THREE.PointLight('#6d8efb',1.0,4.4,2);tvGlow.position.set(-.35,1.55,-2.22);scene.add(tvGlow);
     const lamp=group(-1.42,.93,-2.99);cyl(.13,.15,.035,0,0,0,materials.gold,lamp);cyl(.027,.027,.44,0,.22,0,materials.gold,lamp);cyl(.058,.066,.12,0,.36,0,materials.black,lamp);
-    lampShade=cyl(.16,.26,.33,0,.62,0,mat('#ffcf87',{emissive:'#da8137',emissiveIntensity:.32,side:THREE.DoubleSide}),lamp,10);cyl(.009,.009,.07,0,.825,0,materials.gold,lamp);
-    lampLight=new THREE.PointLight('#ffb962',2.7,7,1.5);lampLight.position.set(-1.42,1.53,-2.98);lampLight.castShadow=true;lampLight.shadow.mapSize.set(1024,1024);lampLight.shadow.bias=-.003;lampLight.shadow.normalBias=.025;scene.add(lampLight);
+    lampShade=cyl(.16,.26,.33,0,.62,0,mat('#ffcf87',{emissive:'#da8137',emissiveIntensity:0,side:THREE.DoubleSide}),lamp,10);cyl(.009,.009,.07,0,.825,0,materials.gold,lamp);
+    lampLight=new THREE.PointLight('#ffb962',0,7,1.5);lampLight.position.set(-1.42,1.53,-2.98);lampLight.castShadow=true;lampLight.shadow.mapSize.set(1024,1024);lampLight.shadow.bias=-.003;lampLight.shadow.normalBias=.025;scene.add(lampLight);
     interactObject(lamp,'lamp','Включить / выключить лампу',toggleLamp);
     cyl(.07,.063,.135,-1.19,1.0,-2.78,mat('#d1c4a5'));const handle=mesh(new THREE.TorusGeometry(.046,.012,5,10),mat('#d1c4a5'));handle.position.set(-1.12,1.02,-2.78);handle.rotation.y=Math.PI/2;
     floorShadow(-.6,-2.9,2.5,1.2);collision(-1.64,.52,-3.65,-2.43);
@@ -310,7 +311,7 @@
 
   function dust(){const g=new THREE.BufferGeometry(),p=new Float32Array(90*3);for(let i=0;i<90;i++){p[i*3]=(random()-.5)*5.6;p[i*3+1]=.3+random()*2.7;p[i*3+2]=(random()-.5)*6;}g.setAttribute('position',new THREE.BufferAttribute(p,3));const m=new THREE.PointsMaterial({color:'#ddc299',size:.011,transparent:true,opacity:.25,depthWrite:false});scene.add(new THREE.Points(g,m));}
 
-  function toggleLamp(){lampOn=!lampOn;lampLight.intensity=lampOn?2.7:0;lampShade.material.emissiveIntensity=lampOn?.32:.015;clickSound();}
+  function toggleLamp(){lampOn=!lampOn;lampLight.intensity=lampOn?2.7:0;lampShade.material.emissiveIntensity=lampOn?.32:0;clickSound();}
   function clickSound(){soundEffect('ui-click');}
   $('sound').onclick=()=>{soundChoice=true;soundOn=!soundOn;ensureSound();};
 
@@ -433,12 +434,10 @@
     if(playing?.video){const video=$('project-video');tvContext.fillStyle='#000';tvContext.fillRect(0,0,512,384);if(video.readyState>=2&&video.videoWidth){const scale=Math.min(512/video.videoWidth,384/video.videoHeight),w=video.videoWidth*scale,h=video.videoHeight*scale;tvContext.drawImage(video,(512-w)/2,(384-h)/2,w,h);}tvTexture.needsUpdate=true;}
 
     else if(!playing){
-      const c=tvContext;const bg=c.createRadialGradient(256,192,5,256,192,300);bg.addColorStop(0,'#456cd2');bg.addColorStop(.5,'#14244e');bg.addColorStop(1,'#0a122a');c.fillStyle=bg;c.fillRect(0,0,512,384);
-      c.strokeStyle='#849ee933';c.lineWidth=1;for(let i=0;i<14;i++){const s=1+i*.29;c.strokeRect(256-47*s,190-70*s,94*s,140*s);}c.fillStyle='#d1e0ff';c.font='18px monospace';c.fillText(txt('ПОСЛЕ ПОЛУНОЧИ','AFTER MIDNIGHT'),30,40);c.fillStyle='#96b8ff';c.font='13px monospace';c.fillText(txt('ВЫБЕРИТЕ КАССЕТУ','CHOOSE A TAPE'),30,348);c.fillStyle='#c0d4ff';c.font='12px monospace';c.fillText('AV 1',444,348);
-      const glow=.5+Math.sin(time*.7)*.1;c.fillStyle=`rgba(172,197,255,${glow})`;c.fillRect(237,127,38,126);c.fillStyle='#5c7fce';c.beginPath();c.moveTo(237,253);c.lineTo(275,253);c.lineTo(332,325);c.lineTo(174,325);c.fill();
+      // The TV stays dark until a cassette is played: the notebook lamp is the entry cue.
+      tvContext.fillStyle='#000';tvContext.fillRect(0,0,512,384);tvTexture.needsUpdate=true;
     }
-    if(!playing){const c=tvContext;c.fillStyle='#080b181a';for(let y=0;y<384;y+=4)c.fillRect(0,y,512,1);c.fillStyle='#d0e2ff0a';c.fillRect(0,(time*25)%400,512,5);tvTexture.needsUpdate=true;}
-    if(tvGlow)tvGlow.intensity=1.0+Math.sin(time*4)*.018;
+    if(tvGlow)tvGlow.intensity=playing?1.0+Math.sin(time*4)*.018:0;
   }
   function updateOverlays(){
     $('hotspots').hidden=true;currentTarget=null;
@@ -604,7 +603,13 @@
     });
   }
   // Keep the light in the renderer light list: toggling visible changes shader variants.
-  function toggleDeskLamp(){deskLight.intensity=deskLight.intensity>0?0:1.15;clickSound();}
+  function toggleDeskLamp(){
+    const on=deskLight.intensity===0;
+    deskLight.intensity=on?deskLight.userData.onIntensity:0;
+    deskBounce.intensity=on?deskBounce.userData.onIntensity:0;
+    for(const m of deskLampGlowMaterials)m.emissiveIntensity=on?m.userData.onIntensity:0;
+    clickSound();
+  }
   function extractComponents(object,select){
     const source=object.geometry,p=source.attributes.position,indices=source.index?.array||Array.from({length:p.count},(_,i)=>i);
     const parent=Array.from({length:p.count},(_,i)=>i),weld=new Map(),v=V(0,0,0);
@@ -688,7 +693,7 @@
 
   function paperMaterial(){return materials.paper||(materials.paper=mat('#cabd9d'));}
 
-  let freeLook=false, curtainsClosed=false, curtainProgress=0, curtainPanels=[], watering=null, wateringCan=null, wateredUntil=0;
+  let freeLook=false, curtainsClosed=true, curtainProgress=1, curtainPanels=[], watering=null, wateringCan=null, wateredUntil=0;
   const cloudObjects=[],autumnDetails=[];
   function requestLook(){
     if(dialogOpen())return;
@@ -858,9 +863,23 @@
     bind('tv','Смотреть телевизор',()=>playing?openScreen():openDialog('tapes-dialog'));
     setupPS1Lid(parts);
     function point(color,intensity,distance,pos,shadow=false){const l=new THREE.PointLight(color,intensity,distance,2);l.position.copy(pos);l.castShadow=shadow&&!coarse;if(l.castShadow){l.shadow.mapSize.set(1024,1024);l.shadow.bias=-.001;l.shadow.normalBias=.025;}scene.add(l);return l;}
-    deskLight=point('#ffd28a',1.15,3,V(1.84,1.12,-.13));bind('deskLamp','Настольная лампа',toggleDeskLamp);
-    point('#386dff',1.6,6,V(1.13,1.9,-2.15));point('#e5bd8c',.55,6,V(-.3,2.48,.30));
-    const outside=new THREE.DirectionalLight('#628aff',1.2);outside.position.set(2,6,-8);scene.add(outside);
+    // Keep the articulated model intact, including its switch and cord, beside the notebook.
+    const notebookLamp=new THREE.Group();notebookLamp.name='Notebook reading lamp';scene.add(notebookLamp);
+    (parts.deskLamp||[]).forEach(o=>notebookLamp.attach(o));
+    notebookLamp.position.set(-.18,0,-.38);
+    notebookLamp.traverse(o=>{if(!o.isMesh)return;const list=Array.isArray(o.material)?o.material:[o.material];const copies=list.map(m=>{if(!m.emissive||m.emissive.getHex()===0)return m;const copy=m.clone();copy.userData.onIntensity=copy.emissiveIntensity;deskLampGlowMaterials.push(copy);return copy;});o.material=Array.isArray(o.material)?copies:copies[0];});
+    deskLight=new THREE.SpotLight('#ffd28a',1.65,2,.68,.8,1);
+    deskLight.name='Notebook reading beam';deskLight.position.set(1.79,1.065,-.508);
+    deskLight.target.position.set(1.58,.835,-.38);
+    deskLight.userData.onIntensity=1.65;
+    deskLight.castShadow=!coarse;deskLight.shadow.mapSize.set(1024,1024);
+    deskLight.shadow.camera.near=.03;deskLight.shadow.bias=-.0003;deskLight.shadow.normalBias=.008;
+    scene.add(deskLight,deskLight.target);
+    // Approximate light reflected from the paper/table; switches off together with the lamp.
+    deskBounce=point('#d9aa71',.35,5,V(1.58,1.02,-.38));
+    deskBounce.name='Reading lamp reflected light';deskBounce.userData.onIntensity=.35;
+    deskBounce.shadow.mapSize.set(512,512);
+    bind('deskLamp','Настольная лампа',toggleDeskLamp);
     const threshold=flat(.85,.045,-1.525,.02,2.885,new THREE.MeshBasicMaterial({color:'#ffd18a',side:THREE.DoubleSide}));threshold.castShadow=false;hallSurfaces.push(threshold);
     const entryGlow=point('#ffc87c',.7,2.4,V(-1.525,.08,3.05));entryGlow.userData.onIntensity=.7;hallLights.push(entryGlow);
     seasonalGroup=new THREE.Group();scene.add(seasonalGroup);(parts.exterior||[]).forEach(o=>seasonalGroup.attach(o));
@@ -881,7 +900,7 @@
       renderer.outputEncoding=THREE.sRGBEncoding;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.08;renderer.shadowMap.enabled=!coarse;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
       scene=new THREE.Scene();scene.background=new THREE.Color('#080d1b');scene.fog=new THREE.FogExp2('#0e1320',.023);
       camera=new THREE.PerspectiveCamera(61,window.innerWidth/window.innerHeight,.04,55);camera.rotation.order='YXZ';
-      const skyLight=new THREE.HemisphereLight('#a6b3ce','#745434',.55);scene.add(skyLight);scene.add(new THREE.AmbientLight('#687394',.10));
+      // Interior illumination comes only from the reading lamp (and TV during playback).
       buildMaterials();
       resize();
       await loadBlenderRoom();
@@ -899,7 +918,7 @@
         register({name:'open_vhs_cover',description:'Open a VHS cover for inspection. This does not start playback.',inputSchema:{type:'object',properties:{id:{type:'string',enum:PROJECTS.map(p=>p.id)}},required:['id'],additionalProperties:false},annotations:{readOnlyHint:false},execute:input=>{if(!input||typeof input!=='object'||Object.keys(input).some(k=>k!=='id'))throw new Error('Expected a tape id');const p=PROJECTS.find(p=>p.id===input.id);if(!p)throw new Error('Unknown tape');selectTape(p);return{id:p.id,view:'cover'};}});
         window.addEventListener('pagehide',()=>lifecycle.abort(),{once:true});
       }
-      window.__roomDiagnostics=()=>({three:THREE.REVISION,entered,entering,doorAngle:door.rotation.y,playing:playing?.id||null,curtainsClosed,curtainProgress,watering:!!watering,watered:performance.now()<wateredUntil,mouseLook:document.pointerLockElement===$('room')||dragging,look:{pitch,yaw,dragging,pointer:lookInput.pointerId,locked:document.pointerLockElement===$('room')},sceneObjects:scene.children.length,colliders:colliders.length,camera:camera.position.toArray(),frames:lastFrame>0,ps1Loaded:!!ps1Model,ps1Bounds:ps1Model?new THREE.Box3().setFromObject(ps1Model):null,modelError,season:seasonKey,language,music:{wanted:musicWanted,paused:music.paused,track:musicIndex,duration:music.duration,duck:musicDuck},roomModel:'blender-hybrid-v7',wardrobeOpen,wardrobeAngle,wardrobeDoors:wardrobeDoors.length,hallwayLit,hallLightIntensity:hallLights.reduce((n,l)=>n+l.intensity,0),bellRings,ps1Open,ps1Angle,soundOn,audio:foley?.diagnostics(),effectsVolume,musicMuted:music.muted,videoMuted:$('project-video').muted,soundEvents:[...soundEvents],analog:!document.body.classList.contains('tv-view'),shelfBoards:4,visibleTapeCount:PROJECTS.filter(p=>p.sceneObject?.visible).length,deskLampIntensity:deskLight?.intensity,shaderPrograms:renderer.info.programs.length,drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,canMove});
+      window.__roomDiagnostics=()=>({three:THREE.REVISION,entered,entering,doorAngle:door.rotation.y,playing:playing?.id||null,curtainsClosed,curtainProgress,watering:!!watering,watered:performance.now()<wateredUntil,mouseLook:document.pointerLockElement===$('room')||dragging,look:{pitch,yaw,dragging,pointer:lookInput.pointerId,locked:document.pointerLockElement===$('room')},sceneObjects:scene.children.length,colliders:colliders.length,camera:camera.position.toArray(),frames:lastFrame>0,ps1Loaded:!!ps1Model,ps1Bounds:ps1Model?new THREE.Box3().setFromObject(ps1Model):null,modelError,season:seasonKey,language,music:{wanted:musicWanted,paused:music.paused,track:musicIndex,duration:music.duration,duck:musicDuck},roomModel:'blender-hybrid-v7',wardrobeOpen,wardrobeAngle,wardrobeDoors:wardrobeDoors.length,hallwayLit,hallLightIntensity:hallLights.reduce((n,l)=>n+l.intensity,0),bellRings,ps1Open,ps1Angle,soundOn,audio:foley?.diagnostics(),effectsVolume,musicMuted:music.muted,videoMuted:$('project-video').muted,soundEvents:[...soundEvents],analog:!document.body.classList.contains('tv-view'),shelfBoards:4,visibleTapeCount:PROJECTS.filter(p=>p.sceneObject?.visible).length,deskLampIntensity:deskLight?.intensity,deskLampPosition:deskLight?.position.toArray(),deskLampTarget:deskLight?.target.position.toArray(),deskBounceIntensity:deskBounce?.intensity,shaderPrograms:renderer.info.programs.length,drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,canMove});
     }catch(error){console.error('Room initialization:',error);renderer=null;$('loading').hidden=true;$('fallback').hidden=false;$('entrance').hidden=true;$('quick-nav').hidden=true;notice('Можно открыть концепт комнаты через меню.');}
   }
   // Current concept: physical objects, local music and the supplied GLB.
