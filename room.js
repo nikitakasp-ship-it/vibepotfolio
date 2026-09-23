@@ -235,7 +235,7 @@
     box(.21,.024,.018,0,.062,.43,mat('#171921'),tv);box(.057,.038,.025,.56,.073,.44,mat('#26242b'),tv);sphere(.007,.64,.072,.462,mat('#799bab',{emissive:'#4d98bc',emissiveIntensity:.8}),tv);
     for(const x of [-.48,.48])box(.13,.04,.34,x,-.045,0,materials.black,tv);
     interactObject(tv,'tv','Смотреть телевизор',()=>playing?openScreen():openDialog('tapes-dialog'));
-    tvGlow=new THREE.PointLight('#6d8efb',1.0,4.4,2);tvGlow.position.set(-.35,1.55,-2.22);scene.add(tvGlow);
+    tvGlow=new THREE.PointLight('#809bd5',.85,7,1);tvGlow.position.set(-.35,1.55,-2.22);scene.add(tvGlow);
     const lamp=group(-1.42,.93,-2.99);cyl(.13,.15,.035,0,0,0,materials.gold,lamp);cyl(.027,.027,.44,0,.22,0,materials.gold,lamp);cyl(.058,.066,.12,0,.36,0,materials.black,lamp);
     lampShade=cyl(.16,.26,.33,0,.62,0,mat('#ffcf87',{emissive:'#da8137',emissiveIntensity:0,side:THREE.DoubleSide}),lamp,10);cyl(.009,.009,.07,0,.825,0,materials.gold,lamp);
     lampLight=new THREE.PointLight('#ffb962',0,7,1.5);lampLight.position.set(-1.42,1.53,-2.98);lampLight.castShadow=true;lampLight.shadow.mapSize.set(1024,1024);lampLight.shadow.bias=-.003;lampLight.shadow.normalBias=.025;scene.add(lampLight);
@@ -434,10 +434,15 @@
     if(playing?.video){const video=$('project-video');tvContext.fillStyle='#000';tvContext.fillRect(0,0,512,384);if(video.readyState>=2&&video.videoWidth){const scale=Math.min(512/video.videoWidth,384/video.videoHeight),w=video.videoWidth*scale,h=video.videoHeight*scale;tvContext.drawImage(video,(512-w)/2,(384-h)/2,w,h);}tvTexture.needsUpdate=true;}
 
     else if(!playing){
-      // The TV stays dark until a cassette is played: the notebook lamp is the entry cue.
-      tvContext.fillStyle='#000';tvContext.fillRect(0,0,512,384);tvTexture.needsUpdate=true;
+      // Dim AV standby screen: enough cool light to read the room without overpowering the notebook.
+      const c=tvContext,g=c.createRadialGradient(256,192,12,256,192,330);
+      g.addColorStop(0,'#283f70');g.addColorStop(1,'#101a31');c.fillStyle=g;c.fillRect(0,0,512,384);
+      c.fillStyle='#8597b9';c.font='16px monospace';c.fillText('AV 1',30,38);
+      c.font='14px monospace';c.fillText(txt('ВЫБЕРИТЕ КАССЕТУ','CHOOSE A TAPE'),30,348);
+      c.fillStyle='#080d182b';for(let y=0;y<384;y+=4)c.fillRect(0,y,512,1);
+      tvTexture.needsUpdate=true;
     }
-    if(tvGlow)tvGlow.intensity=playing?1.0+Math.sin(time*4)*.018:0;
+    if(tvGlow)tvGlow.intensity=playing?1.0+Math.sin(time*4)*.018:.85;
   }
   function updateOverlays(){
     $('hotspots').hidden=true;currentTarget=null;
@@ -876,8 +881,8 @@
     deskLight.shadow.camera.near=.03;deskLight.shadow.bias=-.0003;deskLight.shadow.normalBias=.008;
     scene.add(deskLight,deskLight.target);
     // Approximate light reflected from the paper/table; switches off together with the lamp.
-    deskBounce=point('#d9aa71',.35,5,V(1.58,1.02,-.38));
-    deskBounce.name='Reading lamp reflected light';deskBounce.userData.onIntensity=.35;
+    deskBounce=point('#d9aa71',.45,5,V(1.58,1.02,-.38));
+    deskBounce.name='Reading lamp reflected light';deskBounce.userData.onIntensity=.45;
     deskBounce.shadow.mapSize.set(512,512);
     bind('deskLamp','Настольная лампа',toggleDeskLamp);
     const threshold=flat(.85,.045,-1.525,.02,2.885,new THREE.MeshBasicMaterial({color:'#ffd18a',side:THREE.DoubleSide}));threshold.castShadow=false;hallSurfaces.push(threshold);
@@ -900,7 +905,8 @@
       renderer.outputEncoding=THREE.sRGBEncoding;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.08;renderer.shadowMap.enabled=!coarse;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
       scene=new THREE.Scene();scene.background=new THREE.Color('#080d1b');scene.fog=new THREE.FogExp2('#0e1320',.023);
       camera=new THREE.PerspectiveCamera(61,window.innerWidth/window.innerHeight,.04,55);camera.rotation.order='YXZ';
-      // Interior illumination comes only from the reading lamp (and TV during playback).
+      // Low cool fill approximates TV light reflected from the room surfaces.
+      const tvReflectedLight=new THREE.AmbientLight('#7286b5',.12);tvReflectedLight.name='TV reflected fill';scene.add(tvReflectedLight);
       buildMaterials();
       resize();
       await loadBlenderRoom();
