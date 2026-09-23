@@ -873,16 +873,16 @@
     (parts.deskLamp||[]).forEach(o=>notebookLamp.attach(o));
     notebookLamp.position.set(-.18,0,-.38);
     notebookLamp.traverse(o=>{if(!o.isMesh)return;const list=Array.isArray(o.material)?o.material:[o.material];const copies=list.map(m=>{if(!m.emissive||m.emissive.getHex()===0)return m;const copy=m.clone();copy.userData.onIntensity=copy.emissiveIntensity;deskLampGlowMaterials.push(copy);return copy;});o.material=Array.isArray(o.material)?copies:copies[0];});
-    deskLight=new THREE.SpotLight('#ffd28a',1.65,2,.68,.8,1);
+    deskLight=new THREE.SpotLight('#ffe0a8',2.5,2.6,.72,.78,1);
     deskLight.name='Notebook reading beam';deskLight.position.set(1.79,1.065,-.508);
     deskLight.target.position.set(1.58,.835,-.38);
-    deskLight.userData.onIntensity=1.65;
+    deskLight.userData.onIntensity=2.5;
     deskLight.castShadow=!coarse;deskLight.shadow.mapSize.set(1024,1024);
     deskLight.shadow.camera.near=.03;deskLight.shadow.bias=-.0003;deskLight.shadow.normalBias=.008;
     scene.add(deskLight,deskLight.target);
     // Approximate light reflected from the paper/table; switches off together with the lamp.
-    deskBounce=point('#d9aa71',.45,5,V(1.58,1.02,-.38));
-    deskBounce.name='Reading lamp reflected light';deskBounce.userData.onIntensity=.45;
+    deskBounce=point('#e0b77e',.65,5,V(1.58,1.02,-.38));
+    deskBounce.name='Reading lamp reflected light';deskBounce.userData.onIntensity=.65;
     deskBounce.shadow.mapSize.set(512,512);
     bind('deskLamp','Настольная лампа',toggleDeskLamp);
     const threshold=flat(.85,.045,-1.525,.02,2.885,new THREE.MeshBasicMaterial({color:'#ffd18a',side:THREE.DoubleSide}));threshold.castShadow=false;hallSurfaces.push(threshold);
